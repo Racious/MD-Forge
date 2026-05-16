@@ -1,3 +1,4 @@
+use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
@@ -86,6 +87,22 @@ pub fn run() {
             save_file_as,
             save_html_file,
         ])
+        .setup(|app| {
+            let args: Vec<String> = std::env::args().collect();
+            if let Some(path) = args.get(1) {
+                let path = path.clone();
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+                    if let Ok(content) = std::fs::read_to_string(&path) {
+                        if let Some(window) = handle.get_webview_window("main") {
+                            let _ = window.emit("open-file", (path, content));
+                        }
+                    }
+                });
+            }
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
