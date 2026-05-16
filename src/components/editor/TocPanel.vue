@@ -1,0 +1,91 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useEditorStore } from '../../stores/editorStore';
+import type { TocEntry } from '../../services/markdownRenderService';
+
+const editorStore = useEditorStore();
+
+const toc = computed<TocEntry[]>(() => editorStore.toc);
+
+function scrollTo(slug: string): void {
+  const el = document.getElementById(slug);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+</script>
+
+<template>
+  <div class="toc-panel">
+    <div class="toc-header">Contents</div>
+    <nav v-if="toc.length" class="toc-nav">
+      <a
+        v-for="entry in toc"
+        :key="entry.slug + entry.text"
+        class="toc-item"
+        :class="`toc-h${entry.level}`"
+        :href="`#${entry.slug}`"
+        @click.prevent="scrollTo(entry.slug)"
+      >
+        {{ entry.text }}
+      </a>
+    </nav>
+    <div v-else class="toc-empty">No headings</div>
+  </div>
+</template>
+
+<style scoped>
+.toc-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.toc-header {
+  padding: 10px 12px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.toc-nav {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px 0;
+}
+.toc-item {
+  display: block;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 4px;
+  margin: 0 4px;
+  transition: background 0.1s, color 0.1s;
+  line-height: 1.5;
+}
+.toc-item:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+.toc-h1 { padding-left: 12px; font-weight: 600; color: var(--color-text); }
+.toc-h2 { padding-left: 12px; }
+.toc-h3 { padding-left: 22px; }
+.toc-h4 { padding-left: 32px; font-size: 11px; }
+.toc-h5 { padding-left: 40px; font-size: 11px; }
+.toc-h6 { padding-left: 48px; font-size: 11px; }
+.toc-empty {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+</style>
