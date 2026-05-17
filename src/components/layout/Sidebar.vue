@@ -19,10 +19,9 @@ const hasDocument = computed(() => !!editorStore.currentDocument);
 .sidebar {
   width: 220px;
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
   background: var(--color-surface);
   border-right: 1px solid var(--color-border);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>

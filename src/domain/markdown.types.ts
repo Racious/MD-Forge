@@ -20,6 +20,11 @@ export interface RecentFile {
   lastOpenedAt: string;
 }
 
+export interface Tab {
+  id: string;
+  document: MarkdownDocument;
+}
+
 export interface EditorSettings {
   theme: ThemeMode;
   viewMode: ViewMode;

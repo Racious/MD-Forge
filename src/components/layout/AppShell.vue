@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import EditorToolbar from '../editor/EditorToolbar.vue';
+import TabBar from '../editor/TabBar.vue';
 import Sidebar from './Sidebar.vue';
 import FileStatusBar from '../files/FileStatusBar.vue';
 import MarkdownEditor from '../editor/MarkdownEditor.vue';
@@ -19,6 +20,7 @@ const hasDoc = computed(() => !!editorStore.currentDocument);
 <template>
   <div class="app-shell">
     <EditorToolbar />
+    <TabBar />
 
     <div class="content-area">
       <Sidebar />

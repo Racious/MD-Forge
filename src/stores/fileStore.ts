@@ -36,7 +36,7 @@ export const useFileStore = defineStore('file', () => {
     const editorStore = useEditorStore();
     const document = await openMarkdownFile();
     if (document) {
-      editorStore.openDocument(document);
+      editorStore.openInTab(document);
       loadRecentFiles();
     }
   }
@@ -47,7 +47,7 @@ export const useFileStore = defineStore('file', () => {
     const { extractFileName } = await import('../domain/file.types');
     try {
       const content = await readFile(path);
-      editorStore.openDocument({
+      editorStore.openInTab({
         path,
         fileName: extractFileName(path),
         content,

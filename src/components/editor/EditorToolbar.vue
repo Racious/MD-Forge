@@ -7,6 +7,8 @@ import { useTheme } from '../../composables/useTheme';
 import { exportAsHtml } from '../../services/htmlExportService';
 import ViewModeSwitcher from './ViewModeSwitcher.vue';
 
+const version = __APP_VERSION__;
+
 const editorStore = useEditorStore();
 const fileStore = useFileStore();
 const { guardedOpenFile } = useUnsavedGuard();
@@ -30,6 +32,7 @@ async function handleExportHtml() {
   <div class="toolbar">
     <div class="toolbar-left">
       <span class="app-name">MD Forge</span>
+      <span class="app-version">v{{ version }}</span>
     </div>
 
     <div class="toolbar-center">
@@ -72,6 +75,11 @@ async function handleExportHtml() {
   font-size: 14px;
   color: var(--color-accent);
   letter-spacing: 0.5px;
+}
+.app-version {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-left: 4px;
 }
 .file-name {
   font-size: 13px;

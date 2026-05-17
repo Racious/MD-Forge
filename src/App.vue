@@ -18,7 +18,7 @@ onMounted(async () => {
 
   await listen<[string, string]>('open-file', ({ payload }) => {
     const [path, content] = payload;
-    editorStore.openDocument({
+    editorStore.openInTab({
       path,
       fileName: extractFileName(path),
       content,

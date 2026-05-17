@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import type { MarkdownDocument, ViewMode } from '../domain/markdown.types';
+import type { MarkdownDocument, Tab, ViewMode } from '../domain/markdown.types';
 import { renderMarkdown, extractToc, type TocEntry } from '../services/markdownRenderService';
 import { saveFile, saveFileAs } from '../services/fileSystemService';
 import { addRecentFile } from '../services/recentFileService';
@@ -16,12 +16,20 @@ function resolveImageSrcs(html: string, docPath: string): string {
   });
 }
 
+function generateId(): string {
+  return Math.random().toString(36).slice(2, 9);
+}
+
 export const useEditorStore = defineStore('editor', () => {
   const currentDocument = ref<MarkdownDocument | null>(null);
   const renderedHtml = ref('');
   const toc = ref<TocEntry[]>([]);
   const viewMode = ref<ViewMode>('split');
   const isRendering = ref(false);
+
+  // Tab state
+  const tabs = ref<Tab[]>([]);
+  const activeTabId = ref<string | null>(null);
 
   const isDirty = computed(() => currentDocument.value?.isDirty ?? false);
   const fileName = computed(() => currentDocument.value?.fileName ?? '');
@@ -41,25 +49,88 @@ export const useEditorStore = defineStore('editor', () => {
     renderPreview();
   }
 
-  function openDocument(document: MarkdownDocument): void {
-    currentDocument.value = { ...document };
+  function openInTab(document: MarkdownDocument): void {
+    // 同路徑已開啟則切換至該 tab
+    if (document.path) {
+      const existing = tabs.value.find(t => t.document.path === document.path);
+      if (existing) {
+        switchTab(existing.id);
+        return;
+      }
+    }
+
+    const id = generateId();
+    const doc: MarkdownDocument = { ...document };
+    const tab: Tab = { id, document: doc };
+    tabs.value.push(tab);
+    activeTabId.value = id;
+    currentDocument.value = tab.document;
     renderPreview();
-    addRecentFile({
-      path: document.path!,
-      fileName: document.fileName,
-      lastOpenedAt: new Date().toISOString(),
-    });
+
+    if (document.path) {
+      addRecentFile({
+        path: document.path,
+        fileName: document.fileName,
+        lastOpenedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  function openDocument(document: MarkdownDocument): void {
+    openInTab(document);
+  }
+
+  function switchTab(id: string): void {
+    const tab = tabs.value.find(t => t.id === id);
+    if (!tab) return;
+    activeTabId.value = id;
+    currentDocument.value = tab.document;
+    renderPreview();
+  }
+
+  function closeTab(id: string): void {
+    const tabIndex = tabs.value.findIndex(t => t.id === id);
+    if (tabIndex === -1) return;
+
+    const tab = tabs.value[tabIndex];
+    if (tab.document.isDirty) {
+      const ok = window.confirm(
+        `"${tab.document.fileName}" has unsaved changes.\n\nDiscard changes and close?`
+      );
+      if (!ok) return;
+    }
+
+    tabs.value.splice(tabIndex, 1);
+
+    if (activeTabId.value === id) {
+      if (tabs.value.length > 0) {
+        const newIndex = Math.min(tabIndex, tabs.value.length - 1);
+        switchTab(tabs.value[newIndex].id);
+      } else {
+        // 全部關閉，回首頁
+        activeTabId.value = null;
+        currentDocument.value = null;
+        renderedHtml.value = '';
+        toc.value = [];
+      }
+    }
   }
 
   function newDocument(): void {
-    currentDocument.value = {
+    const doc: MarkdownDocument = {
       path: null,
       fileName: 'untitled.md',
       content: '',
       originalContent: '',
       isDirty: false,
     };
+    const id = generateId();
+    const tab: Tab = { id, document: doc };
+    tabs.value.push(tab);
+    activeTabId.value = id;
+    currentDocument.value = tab.document;
     renderedHtml.value = '';
+    toc.value = [];
   }
 
   async function saveDocument(): Promise<void> {
@@ -126,12 +197,17 @@ export const useEditorStore = defineStore('editor', () => {
     toc,
     viewMode,
     isRendering,
+    tabs,
+    activeTabId,
     isDirty,
     fileName,
     wordCount,
     lineCount,
     setContent,
     openDocument,
+    openInTab,
+    switchTab,
+    closeTab,
     newDocument,
     saveDocument,
     saveDocumentAs,

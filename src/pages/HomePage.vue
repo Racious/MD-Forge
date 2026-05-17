@@ -7,6 +7,12 @@ const fileStore = useFileStore();
 const editorStore = useEditorStore();
 const { guardedOpenFile } = useUnsavedGuard();
 
+const version = __APP_VERSION__;
+const buildTime = new Date(__BUILD_TIME__).toLocaleString('zh-TW', {
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit',
+});
+
 async function handleOpen() {
   await guardedOpenFile(() => fileStore.openFile());
 }
@@ -26,6 +32,12 @@ function handleNew() {
       <div class="actions">
         <button class="btn-primary" @click="handleOpen">Open Markdown File</button>
         <button class="btn-secondary" @click="handleNew">New Document</button>
+      </div>
+
+      <div class="build-info">
+        <span>v{{ version }}</span>
+        <span class="build-sep">·</span>
+        <span>Built {{ buildTime }}</span>
       </div>
     </div>
 
@@ -73,6 +85,16 @@ function handleNew() {
   margin: 0;
 }
 .subtitle { font-size: 14px; color: var(--color-text-muted); margin: 0; }
+.build-info {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
+}
+.build-sep { opacity: 0.5; }
 .actions { display: flex; gap: 12px; margin-top: 12px; }
 .btn-primary, .btn-secondary {
   padding: 10px 24px;

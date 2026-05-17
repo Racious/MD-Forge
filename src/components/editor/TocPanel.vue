@@ -38,10 +38,11 @@ function scrollTo(slug: string): void {
 .toc-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
 }
 .toc-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding: 10px 12px 8px;
   font-size: 11px;
   font-weight: 600;
@@ -49,13 +50,11 @@ function scrollTo(slug: string): void {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
+  background: var(--color-surface);
 }
 .toc-nav {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  flex: 1;
   padding: 6px 0;
 }
 .toc-item {
@@ -67,6 +66,8 @@ function scrollTo(slug: string): void {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
   border-radius: 4px;
   margin: 0 4px;
   transition: background 0.1s, color 0.1s;

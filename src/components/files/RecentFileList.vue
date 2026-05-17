@@ -51,9 +51,11 @@ async function openRecent(path: string) {
 .recent-list {
   display: flex;
   flex-direction: column;
-  height: 100%;
 }
 .recent-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -64,6 +66,7 @@ async function openRecent(path: string) {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 .clear-btn {
   font-size: 10px;
@@ -79,8 +82,6 @@ async function openRecent(path: string) {
   list-style: none;
   margin: 0;
   padding: 4px 0;
-  overflow-y: auto;
-  flex: 1;
 }
 .file-item {
   display: flex;
