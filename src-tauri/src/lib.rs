@@ -74,9 +74,29 @@ async fn save_html_file(
     }
 }
 
+fn emit_open_file(handle: &tauri::AppHandle, path: String) {
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        if let Some(window) = handle.get_webview_window("main") {
+            let _ = window.set_focus();
+            let _ = window.emit("open-file", (path, content));
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            // 第二個實例啟動時，把路徑傳給已開啟的視窗
+            if let Some(path) = args.get(1) {
+                emit_open_file(app, path.clone());
+            } else {
+                // 沒有路徑，只聚焦已開啟的視窗
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_focus();
+                }
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
@@ -94,11 +114,7 @@ pub fn run() {
                 let handle = app.handle().clone();
                 std::thread::spawn(move || {
                     std::thread::sleep(std::time::Duration::from_millis(500));
-                    if let Ok(content) = std::fs::read_to_string(&path) {
-                        if let Some(window) = handle.get_webview_window("main") {
-                            let _ = window.emit("open-file", (path, content));
-                        }
-                    }
+                    emit_open_file(&handle, path);
                 });
             }
             Ok(())

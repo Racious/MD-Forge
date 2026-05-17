@@ -25,6 +25,13 @@ const md = new MarkdownIt({
   .use(anchor, { permalink: false, slugify: slugifyHeading })
   .use(taskLists, { enabled: true, label: true });
 
+// data: URI 不做 URL 編碼，避免 base64 中的 +/= 被破壞
+const defaultNormalizeLink = md.normalizeLink.bind(md);
+md.normalizeLink = (url: string) => {
+  if (url.startsWith('data:')) return url;
+  return defaultNormalizeLink(url);
+};
+
 const defaultFence = md.renderer.rules.fence!.bind(md.renderer.rules);
 md.renderer.rules.fence = (tokens, idx, options, env, self) => {
   const token = tokens[idx];

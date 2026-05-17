@@ -23,7 +23,7 @@ async function initMermaid() {
   mermaid.initialize({
     startOnLoad: false,
     theme,
-    securityLevel: 'loose',
+    securityLevel: 'strict',
     fontFamily: 'inherit',
   });
 }
