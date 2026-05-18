@@ -140,6 +140,12 @@ npm run package
 
 ## 更新紀錄
 
+### v0.3.0
+
+- 支援 Markdown 中嵌入 HTML（`<p>`、`<img>`、`<details>` 等）
+- 新增 DOMPurify 過濾層，移除危險標籤與事件屬性，確保安全渲染
+- 新增 GitHub Pages 展示頁（[racious.github.io/MD-Forge](https://racious.github.io/MD-Forge/)）
+
 ### v0.2.1
 
 - 修正視窗啟動時短暫出現於左上角後才移至中央的問題
