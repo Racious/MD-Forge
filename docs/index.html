@@ -166,6 +166,27 @@
       width: 100%;
       display: block;
     }
+    .screenshot-gallery {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      max-width: 900px;
+      margin: 1rem auto 5rem;
+      padding: 0 2rem;
+    }
+    .screenshot-gallery .screenshot-frame img {
+      width: 100%;
+      display: block;
+    }
+    .screenshot-caption {
+      text-align: center;
+      font-size: .75rem;
+      color: var(--text-dim);
+      margin-top: .5rem;
+    }
+    @media (max-width: 600px) {
+      .screenshot-gallery { grid-template-columns: 1fr; }
+    }
     /* placeholder when no screenshot */
     .screenshot-placeholder {
       width: 100%;
@@ -397,7 +418,23 @@
 <!-- SCREENSHOT -->
 <div class="screenshot-wrap">
   <div class="screenshot-frame">
-    <img src="assets/screenshot-split.png.jpg" alt="MD Forge Split View" />
+    <img src="assets/%E8%9E%A2%E5%B9%95%E6%93%B7%E5%8F%96%E7%95%AB%E9%9D%A2%202026-05-18%20204321.jpg" alt="MD Forge Split View with Mermaid Diagrams" />
+  </div>
+</div>
+
+<!-- SCREENSHOT GALLERY -->
+<div class="screenshot-gallery">
+  <div>
+    <div class="screenshot-frame">
+      <img src="assets/%E8%9E%A2%E5%B9%95%E6%93%B7%E5%8F%96%E7%95%AB%E9%9D%A2%202026-05-18%20204337.jpg" alt="MD Forge Home Screen" />
+    </div>
+    <p class="screenshot-caption"><span class="zh">首頁 — 最近開啟的檔案</span><span class="en">Home — Recent files</span></p>
+  </div>
+  <div>
+    <div class="screenshot-frame">
+      <img src="assets/%E8%9E%A2%E5%B9%95%E6%93%B7%E5%8F%96%E7%95%AB%E9%9D%A2%202026-05-18%20204348.jpg" alt="MD Forge Home Screen Empty" />
+    </div>
+    <p class="screenshot-caption"><span class="zh">首頁 — 初始狀態</span><span class="en">Home — Initial state</span></p>
   </div>
 </div>
 
