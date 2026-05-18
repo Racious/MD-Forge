@@ -19,7 +19,11 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Racious/MD-Forge/main/docs/assets/screenshot-split.png.jpg" width="720" alt="MD Forge Split View" />
+  <img src="https://raw.githubusercontent.com/Racious/MD-Forge/main/docs/assets/screenshot-editor.jpg" width="720" alt="MD Forge Editor" />
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Racious/MD-Forge/main/docs/assets/screenshot-home.jpg" width="480" alt="MD Forge Home Screen" />
 </p>
 
 ---
