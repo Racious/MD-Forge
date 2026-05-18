@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MD Forge — 本地優先的桌面 Markdown 編輯器</title>
+  <meta name="description" content="MD Forge is a local-first desktop Markdown editor built with Tauri 2 + Vue 3. Multi-tab, live preview, Mermaid diagrams, and more." />
+  <link rel="icon" href="https://raw.githubusercontent.com/Racious/MD-Forge/main/src-tauri/icons/32x32.png" />
+  <style>
+    :root {
+      --bg:         #0d1117;
+      --bg-card:    #161b22;
+      --bg-card2:   #1c2128;
+      --border:     #30363d;
+      --accent:     #4f8ef7;
+      --accent-dim: #1f3a6e;
+      --text:       #e6edf3;
+      --text-muted: #8b949e;
+      --text-dim:   #484f58;
+      --radius:     12px;
+      --shadow:     0 8px 32px rgba(0,0,0,.5);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      background: rgba(13,17,23,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .nav-brand img { width: 28px; height: 28px; border-radius: 6px; }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .nav-links a { color: var(--text-muted); font-size: .9rem; transition: color .15s; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+    .lang-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: .8rem;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .hero-icon {
+      width: 88px;
+      height: 88px;
+      border-radius: 20px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 0 0 1px var(--border), var(--shadow);
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      margin-bottom: .75rem;
+      background: linear-gradient(135deg, #e6edf3 30%, #4f8ef7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero-badges {
+      display: flex;
+      justify-content: center;
+      gap: .5rem;
+      flex-wrap: wrap;
+      margin-bottom: 2.5rem;
+    }
+    .hero-badges img { height: 20px; }
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+    }
+    .btn-primary:hover { background: #3a7de0; text-decoration: none; }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+    /* ── SCREENSHOT ── */
+    .screenshot-wrap {
+      max-width: 900px;
+      margin: 0 auto 5rem;
+      padding: 0 2rem;
+    }
+    .screenshot-frame {
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .screenshot-frame img {
+      width: 100%;
+      display: block;
+    }
+    /* placeholder when no screenshot */
+    .screenshot-placeholder {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: linear-gradient(135deg, #161b22 0%, #1c2128 40%, #1a2540 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-dim);
+      font-size: .9rem;
+    }
+    .screenshot-placeholder svg { opacity: .3; }
+
+    /* ── FEATURES ── */
+    .section {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 2rem 5rem;
+    }
+    .section-title {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+    }
+    .section-sub {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+      font-size: .95rem;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: border-color .15s;
+    }
+    .feature-card:hover { border-color: var(--accent); }
+    .feature-icon {
+      font-size: 1.6rem;
+      margin-bottom: .75rem;
+    }
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: .4rem;
+    }
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: .875rem;
+      line-height: 1.6;
+    }
+
+    /* ── STATS ── */
+    .stats-row {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+      padding: 3rem 2rem;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 5rem;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .stat-label {
+      font-size: .8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ── DOWNLOAD ── */
+    .download-section {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 0 2rem 5rem;
+      text-align: center;
+    }
+    .download-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+      text-align: left;
+    }
+    .download-table th {
+      color: var(--text-muted);
+      font-size: .8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: .5rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .download-table td {
+      padding: .75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: .9rem;
+    }
+    .download-table tr:last-child td { border-bottom: none; }
+    .download-table a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .tag {
+      display: inline-block;
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-size: .7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .warning-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      font-size: .85rem;
+      color: var(--text-muted);
+      text-align: left;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .warning-box span:first-child { flex-shrink: 0; }
+
+    /* ── TECH STACK ── */
+    .stack-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+    .stack-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: .85rem;
+      color: var(--text-muted);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      font-size: .85rem;
+      color: var(--text-dim);
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--text); }
+
+    /* ── LANG TOGGLE ── */
+    [data-lang="en"] .zh { display: none; }
+    [data-lang="zh"] .en { display: none; }
+
+    @media (max-width: 600px) {
+      nav { padding: 0 1rem; }
+      .nav-links { gap: 1rem; }
+      .hero { padding: 4rem 1.5rem 3rem; }
+      .stats-row { gap: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-brand" href="#">
+    <img src="https://raw.githubusercontent.com/Racious/MD-Forge/main/src-tauri/icons/128x128.png" alt="MD Forge" />
+    MD Forge
+  </a>
+  <div class="nav-links">
+    <a href="#features"><span class="zh">功能</span><span class="en">Features</span></a>
+    <a href="#download"><span class="zh">下載</span><span class="en">Download</span></a>
+    <a href="https://github.com/Racious/MD-Forge" target="_blank">GitHub</a>
+    <button class="lang-btn" onclick="toggleLang()">EN / 中文</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <img class="hero-icon"
+    src="https://raw.githubusercontent.com/Racious/MD-Forge/main/src-tauri/icons/128x128.png"
+    alt="MD Forge" />
+
+  <h1>MD Forge</h1>
+
+  <p class="hero-sub">
+    <span class="zh">本地優先的桌面 Markdown 編輯器。<br/>即時預覽、多分頁、Mermaid 圖表，所有資料僅存於本機。</span>
+    <span class="en">A local-first desktop Markdown editor.<br/>Live preview, multi-tab, Mermaid diagrams — your data stays on your machine.</span>
+  </p>
+
+  <div class="hero-badges">
+    <img src="https://img.shields.io/github/v/release/Racious/MD-Forge?style=flat-square&color=4f8ef7" alt="Release" />
+    <img src="https://img.shields.io/badge/platform-Windows-lightgrey?style=flat-square" alt="Platform" />
+    <img src="https://img.shields.io/badge/built%20with-Tauri%202-orange?style=flat-square" alt="Tauri 2" />
+    <img src="https://img.shields.io/badge/Vue-3-42b883?style=flat-square" alt="Vue 3" />
+  </div>
+
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="#download">
+      ↓ <span class="zh">立即下載</span><span class="en">Download</span>
+    </a>
+    <a class="btn btn-outline" href="https://github.com/Racious/MD-Forge" target="_blank">
+      ☆ <span class="zh">查看原始碼</span><span class="en">View Source</span>
+    </a>
+  </div>
+</section>
+
+<!-- SCREENSHOT -->
+<div class="screenshot-wrap">
+  <div class="screenshot-frame">
+    <!-- 截圖完成後將下方 placeholder 替換為：
+         <img src="assets/screenshot-split.png" alt="MD Forge Split View" />
+    -->
+    <div class="screenshot-placeholder">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+      </svg>
+      <span class="zh">截圖即將放上</span>
+      <span class="en">Screenshot coming soon</span>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat">
+    <div class="stat-num">0</div>
+    <div class="stat-label"><span class="zh">網路請求</span><span class="en">Network requests</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">100%</div>
+    <div class="stat-label"><span class="zh">資料留在本機</span><span class="en">Data stays local</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">3</div>
+    <div class="stat-label"><span class="zh">開啟方式</span><span class="en">Ways to open files</span></div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">∞</div>
+    <div class="stat-label"><span class="zh">可同時開啟的分頁</span><span class="en">Tabs at once</span></div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <h2 class="section-title"><span class="zh">功能特色</span><span class="en">Features</span></h2>
+  <p class="section-sub">
+    <span class="zh">寫作需要的一切，沒有多餘的東西。</span>
+    <span class="en">Everything you need to write. Nothing you don't.</span>
+  </p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📑</div>
+      <h3><span class="zh">多分頁編輯</span><span class="en">Multi-tab Editing</span></h3>
+      <p>
+        <span class="zh">同時開啟多個文件，相同檔案不重複開啟。關閉所有分頁後自動回到首頁。</span>
+        <span class="en">Open multiple documents at once. Duplicate tabs are prevented. Closing all tabs returns to the home screen.</span>
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3><span class="zh">即時預覽</span><span class="en">Live Preview</span></h3>
+      <p>
+        <span class="zh">Edit / Split / Preview 三種模式隨時切換，Split 模式下左右同步捲動。</span>
+        <span class="en">Switch between Edit, Split, and Preview modes anytime. Split mode keeps editor and preview in sync.</span>
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧜</div>
+      <h3><span class="zh">Mermaid 圖表</span><span class="en">Mermaid Diagrams</span></h3>
+      <p>
+        <span class="zh">流程圖、循序圖、甘特圖等直接在 Markdown 中繪製，亮暗主題自動切換。</span>
+        <span class="en">Render flowcharts, sequence diagrams, Gantt charts and more directly in Markdown. Auto theme-aware.</span>
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🖼️</div>
+      <h3><span class="zh">完整圖片支援</span><span class="en">Full Image Support</span></h3>
+      <p>
+        <span class="zh">本機圖片（相對路徑）、網路圖片、Data URI Base64 圖片均可正確顯示。</span>
+        <span class="en">Local images (relative paths), remote images, and Data URI Base64 images all render correctly.</span>
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗂️</div>
+      <h3><span class="zh">TOC 側邊欄</span><span class="en">TOC Sidebar</span></h3>
+      <p>
+        <span class="zh">自動從標題生成目錄，點擊跳至對應段落，支援中文等 Unicode 錨點。</span>
+        <span class="en">Auto-generated table of contents. Click to jump to any heading. Full Unicode anchor support.</span>
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📂</div>
+      <h3><span class="zh">彈性開檔</span><span class="en">Flexible File Opening</span></h3>
+      <p>
+        <span class="zh">雙擊關聯開啟、拖曳進視窗、命令列傳入路徑，三種方式皆在同一視窗新分頁開啟。</span>
+        <span class="en">Double-click, drag & drop, or pass a path via CLI — all open in a new tab within the same window.</span>
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎨</div>
+      <h3><span class="zh">主題與設定</span><span class="en">Themes & Settings</span></h3>
+      <p>
+        <span class="zh">亮色 / 暗色主題切換，字體大小、自動換行、設定皆持久化儲存。</span>
+        <span class="en">Light and dark themes, font size, word wrap — all settings are persisted locally.</span>
+      </p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📤</div>
+      <h3><span class="zh">HTML 匯出</span><span class="en">HTML Export</span></h3>
+      <p>
+        <span class="zh">一鍵匯出為含完整樣式的獨立 HTML 檔案，直接在瀏覽器開啟分享。</span>
+        <span class="en">Export to a self-contained HTML file with full styling. Open it in any browser and share it anywhere.</span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section class="download-section" id="download">
+  <h2 class="section-title"><span class="zh">下載</span><span class="en">Download</span></h2>
+  <p class="section-sub" style="margin-bottom:0">
+    <span class="zh">僅支援 Windows，更多平台未來規劃中。</span>
+    <span class="en">Windows only for now. More platforms planned.</span>
+  </p>
+
+  <table class="download-table">
+    <thead>
+      <tr>
+        <th><span class="zh">檔案</span><span class="en">File</span></th>
+        <th><span class="zh">說明</span><span class="en">Description</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <a href="https://github.com/Racious/MD-Forge/releases/latest">
+            ↓ MD.Forge_x64-setup.exe
+          </a>
+          <span class="tag"><span class="zh">建議</span><span class="en">Recommended</span></span>
+        </td>
+        <td><span class="zh">安裝版</span><span class="en">Installer</span></td>
+      </tr>
+      <tr>
+        <td>
+          <a href="https://github.com/Racious/MD-Forge/releases/latest">
+            ↓ MD.Forge_x64_en-US.msi
+          </a>
+        </td>
+        <td><span class="zh">MSI 安裝包</span><span class="en">MSI Package</span></td>
+      </tr>
+      <tr>
+        <td>
+          <a href="https://github.com/Racious/MD-Forge/releases/latest">
+            ↓ MD.Forge.exe
+          </a>
+        </td>
+        <td><span class="zh">免安裝版</span><span class="en">Portable</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="warning-box">
+    <span>⚠️</span>
+    <span>
+      <span class="zh">首次執行可能出現 Windows SmartScreen 警告（應用程式尚未完成程式碼簽署）。點擊「其他資訊」→「仍要執行」即可繼續。</span>
+      <span class="en">Windows SmartScreen may warn on first launch because the app is not yet code-signed. Click "More info" → "Run anyway" to proceed.</span>
+    </span>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section class="section" style="padding-bottom:4rem; text-align:center">
+  <h2 class="section-title"><span class="zh">技術棧</span><span class="en">Tech Stack</span></h2>
+  <div class="stack-grid">
+    <span class="stack-chip">Tauri 2</span>
+    <span class="stack-chip">Rust</span>
+    <span class="stack-chip">Vue 3</span>
+    <span class="stack-chip">TypeScript</span>
+    <span class="stack-chip">Pinia</span>
+    <span class="stack-chip">CodeMirror 6</span>
+    <span class="stack-chip">markdown-it</span>
+    <span class="stack-chip">Mermaid 11</span>
+    <span class="stack-chip">DOMPurify</span>
+    <span class="stack-chip">Vite 6</span>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    <span class="zh">由</span><span class="en">Built by</span>
+    <a href="https://github.com/Racious" target="_blank">Racious</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/Racious/MD-Forge" target="_blank">GitHub</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/Racious/MD-Forge/releases" target="_blank">
+      <span class="zh">發行版本</span><span class="en">Releases</span>
+    </a>
+  </p>
+  <p style="margin-top:.5rem; font-size:.75rem">
+    MD Forge — <span class="zh">本地優先，隱私自主。</span><span class="en">Local-first, privacy by design.</span>
+  </p>
+</footer>
+
+<script>
+  function toggleLang() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-lang');
+    html.setAttribute('data-lang', current === 'zh' ? 'en' : 'zh');
+    html.setAttribute('lang', current === 'zh' ? 'en' : 'zh-TW');
+  }
+</script>
+
+</body>
+</html>
