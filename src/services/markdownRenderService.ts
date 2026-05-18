@@ -3,6 +3,7 @@ import MarkdownIt from "markdown-it";
 import taskLists from "markdown-it-task-lists";
 // @ts-ignore
 import anchor from "markdown-it-anchor";
+import DOMPurify from "dompurify";
 
 function slugifyHeading(s: string): string {
   return s
@@ -15,7 +16,7 @@ function slugifyHeading(s: string): string {
 }
 
 const md = new MarkdownIt({
-  html: false,
+  html: true,
   xhtmlOut: false,
   breaks: false,
   langPrefix: "language-",
@@ -67,7 +68,12 @@ export function extractToc(content: string): TocEntry[] {
 }
 
 export function renderMarkdown(content: string): string {
-  return md.render(content);
+  const raw = md.render(content);
+  // 保留排版用 HTML（details、align 等），移除危險標籤與事件屬性
+  return DOMPurify.sanitize(raw, {
+    ADD_TAGS: ['details', 'summary'],
+    ADD_ATTR: ['align', 'target'],
+  }) as string;
 }
 
 export function buildHtmlDocument(title: string, renderedHtml: string): string {
