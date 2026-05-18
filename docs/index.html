@@ -252,9 +252,9 @@
     .hero h1 {
       margin: 20px 0 18px;
       max-width: 720px;
-      font-size: clamp(3.1rem, 8vw, 6.55rem);
-      line-height: .94;
-      letter-spacing: -.08em;
+      font-size: clamp(2.5rem, 6.5vw, 5.2rem);
+      line-height: 1.12;
+      letter-spacing: -.025em;
       font-weight: 900;
     }
 
@@ -755,6 +755,105 @@
       font-size: 1.2rem;
     }
 
+    .toc-highlight {
+      position: relative;
+      overflow: hidden;
+      margin-top: 42px;
+      padding: 28px;
+      border-radius: var(--radius-lg);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(114, 167, 255, .20), transparent 34%),
+        radial-gradient(circle at 88% 100%, rgba(167, 139, 250, .16), transparent 34%),
+        linear-gradient(180deg, rgba(15, 23, 42, .86), rgba(15, 23, 42, .48));
+      border: 1px solid rgba(114, 167, 255, .24);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .toc-highlight-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .92fr) minmax(320px, 1.08fr);
+      gap: 28px;
+      align-items: center;
+    }
+
+    .toc-highlight h3 {
+      margin: 14px 0 12px;
+      font-size: clamp(1.8rem, 3.4vw, 2.8rem);
+      line-height: 1.04;
+      letter-spacing: -.055em;
+    }
+
+    .toc-highlight p {
+      margin: 0;
+      color: var(--text-muted);
+    }
+
+    .toc-demo {
+      padding: 18px;
+      border-radius: 24px;
+      background: rgba(3, 7, 18, .38);
+      border: 1px solid rgba(148, 163, 184, .16);
+    }
+
+    .toc-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 14px;
+      min-height: 254px;
+    }
+
+    .toc-list {
+      padding-right: 14px;
+      border-right: 1px solid rgba(148, 163, 184, .14);
+    }
+
+    .toc-list span {
+      display: block;
+      height: 14px;
+      margin-bottom: 14px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, .18);
+    }
+
+    .toc-list span:nth-child(1) { width: 88%; background: rgba(114, 167, 255, .45); }
+    .toc-list span:nth-child(2) { width: 64%; margin-left: 14px; }
+    .toc-list span:nth-child(3) { width: 74%; margin-left: 14px; }
+    .toc-list span:nth-child(4) { width: 54%; margin-left: 28px; }
+    .toc-list span:nth-child(5) { width: 80%; }
+    .toc-list span:nth-child(6) { width: 62%; margin-left: 14px; }
+
+    .toc-doc {
+      padding: 4px 0 0;
+    }
+
+    .toc-doc .doc-title {
+      width: 68%;
+      height: 28px;
+      margin-bottom: 22px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(255,255,255,.78), rgba(114,167,255,.42));
+    }
+
+    .toc-doc .doc-line {
+      height: 11px;
+      margin-bottom: 12px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, .18);
+    }
+
+    .toc-doc .doc-line:nth-child(2) { width: 92%; }
+    .toc-doc .doc-line:nth-child(3) { width: 76%; }
+    .toc-doc .doc-line:nth-child(4) { width: 84%; }
+    .toc-doc .doc-line:nth-child(5) {
+      width: 58%;
+      height: 20px;
+      margin-top: 24px;
+      background: rgba(114, 167, 255, .42);
+    }
+    .toc-doc .doc-line:nth-child(6) { width: 90%; }
+    .toc-doc .doc-line:nth-child(7) { width: 70%; }
+
+
     /* ── DOWNLOAD ──────────────────────────────────────────── */
 
     .download-panel {
@@ -1077,8 +1176,20 @@
       .screenshot-gallery,
       .features-grid,
       .workflow,
-      .stats-grid {
+      .stats-grid,
+      .toc-highlight-grid {
         grid-template-columns: 1fr;
+      }
+
+      .toc-row {
+        grid-template-columns: 1fr;
+      }
+
+      .toc-list {
+        border-right: 0;
+        border-bottom: 1px solid rgba(148, 163, 184, .14);
+        padding-right: 0;
+        padding-bottom: 10px;
       }
 
       .section {
@@ -1138,18 +1249,20 @@
           </span>
 
           <h1 class="gradient-text">
-            <span class="zh">鍛造你的<br/>Markdown 工作流。</span>
+            <span class="zh">鍛造你的 Markdown<br/>工作流。</span>
             <span class="en">Forge your<br/>Markdown workflow.</span>
           </h1>
 
           <p class="hero-lead">
             <span class="zh">
               MD Forge 是一款以本機檔案為核心的桌面 Markdown 編輯器。
-              支援即時預覽、多分頁、Mermaid 圖表與 HTML 匯出，讓寫作、整理與技術文件都更安靜而流暢。
+              支援即時預覽、多分頁、Mermaid 圖表、HTML 匯出，並能自動從標題生成 TOC 側邊欄，
+              點擊即可跳至對應段落，讓長篇技術文件也能保持清楚結構。
             </span>
             <span class="en">
               MD Forge is a local-first desktop Markdown editor with live preview, multi-tab editing,
-              Mermaid diagrams, and HTML export — built for quiet, focused writing.
+              Mermaid diagrams, HTML export, and an auto-generated TOC sidebar that lets you jump through
+              long technical documents with ease.
             </span>
           </p>
 
@@ -1165,6 +1278,7 @@
           <div class="hero-meta" aria-label="Highlights">
             <span class="meta-pill">🔒 <span class="zh">資料留在本機</span><span class="en">Local files</span></span>
             <span class="meta-pill">⚡ <span class="zh">即時預覽</span><span class="en">Live preview</span></span>
+            <span class="meta-pill">🗂️ <span class="zh">TOC 側邊欄</span><span class="en">TOC sidebar</span></span>
             <span class="meta-pill">🧜 <span class="zh">Mermaid 圖表</span><span class="en">Mermaid diagrams</span></span>
           </div>
 
@@ -1307,6 +1421,59 @@
         <div class="stat-card reveal">
           <span class="stat-num">∞</span>
           <span class="stat-label"><span class="zh">可同時開啟的分頁</span><span class="en">Tabs at once</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOC HIGHLIGHT -->
+  <section class="section" aria-labelledby="toc-title">
+    <div class="container">
+      <div class="toc-highlight reveal">
+        <div class="toc-highlight-grid">
+          <div>
+            <span class="eyebrow">
+              <span class="zh">重點功能 · TOC Sidebar</span>
+              <span class="en">Key feature · TOC Sidebar</span>
+            </span>
+            <h3 id="toc-title">
+              <span class="zh">長篇文件，也能一眼看清結構。</span>
+              <span class="en">Navigate long documents at a glance.</span>
+            </h3>
+            <p>
+              <span class="zh">
+                MD Forge 會自動從 Markdown 標題生成 TOC 側邊欄，支援中文與 Unicode 錨點。
+                編寫規格書、工作日誌、API 文件或技術筆記時，可直接點擊目錄跳到對應段落，
+                不必在長文件中反覆捲動尋找位置。
+              </span>
+              <span class="en">
+                MD Forge automatically builds a TOC sidebar from Markdown headings, with Unicode anchor support.
+                When writing specs, work logs, API docs, or technical notes, you can jump to any section instantly.
+              </span>
+            </p>
+          </div>
+
+          <div class="toc-demo" aria-hidden="true">
+            <div class="toc-row">
+              <div class="toc-list">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="toc-doc">
+                <div class="doc-title"></div>
+                <div class="doc-line"></div>
+                <div class="doc-line"></div>
+                <div class="doc-line"></div>
+                <div class="doc-line"></div>
+                <div class="doc-line"></div>
+                <div class="doc-line"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
