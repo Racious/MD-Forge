@@ -37,7 +37,7 @@ function handleNew() {
       <div class="build-info">
         <span>v{{ version }}</span>
         <span class="build-sep">·</span>
-        <span>Built {{ buildTime }}</span>
+        <span>Build {{ buildTime }}</span>
       </div>
     </div>
 
