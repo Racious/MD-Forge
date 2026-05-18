@@ -86,6 +86,7 @@ fn emit_open_file(handle: &tauri::AppHandle, path: String) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             // 第二個實例啟動時，把路徑傳給已開啟的視窗
             if let Some(path) = args.get(1) {
@@ -108,6 +109,12 @@ pub fn run() {
             save_html_file,
         ])
         .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                if !window.is_maximized().unwrap_or(false) {
+                    let _ = window.center();
+                }
+                let _ = window.show();
+            }
             let args: Vec<String> = std::env::args().collect();
             if let Some(path) = args.get(1) {
                 let path = path.clone();
