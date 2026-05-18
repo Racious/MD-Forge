@@ -3,630 +3,1593 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MD Forge — 本地優先的桌面 Markdown 編輯器</title>
-  <meta name="description" content="MD Forge is a local-first desktop Markdown editor built with Tauri 2 + Vue 3. Multi-tab, live preview, Mermaid diagrams, and more." />
+  <title>MD Forge — Local-first Markdown Editor</title>
+  <meta name="description" content="MD Forge is a local-first desktop Markdown editor built with Tauri 2 + Vue 3. Multi-tab editing, live preview, Mermaid diagrams, and privacy-first local files." />
   <link rel="icon" href="https://raw.githubusercontent.com/Racious/MD-Forge/main/src-tauri/icons/32x32.png" />
   <style>
     :root {
-      --bg:         #0d1117;
-      --bg-card:    #161b22;
-      --bg-card2:   #1c2128;
-      --border:     #30363d;
-      --accent:     #4f8ef7;
-      --accent-dim: #1f3a6e;
-      --text:       #e6edf3;
-      --text-muted: #8b949e;
-      --text-dim:   #484f58;
-      --radius:     12px;
-      --shadow:     0 8px 32px rgba(0,0,0,.5);
+      color-scheme: dark;
+
+      --bg: #070a12;
+      --bg-deep: #03050a;
+      --surface: rgba(15, 23, 42, .74);
+      --surface-strong: rgba(18, 26, 45, .92);
+      --surface-soft: rgba(30, 41, 59, .52);
+      --border: rgba(148, 163, 184, .18);
+      --border-strong: rgba(148, 163, 184, .32);
+
+      --text: #eef4ff;
+      --text-muted: #9aa8bd;
+      --text-dim: #64748b;
+
+      --accent: #72a7ff;
+      --accent-2: #a78bfa;
+      --accent-3: #4ade80;
+      --warning: #f8c76d;
+
+      --radius-lg: 30px;
+      --radius-md: 22px;
+      --radius-sm: 14px;
+
+      --shadow-soft: 0 24px 80px rgba(0, 0, 0, .42);
+      --shadow-glow: 0 0 80px rgba(79, 142, 247, .18);
+      --max: 1120px;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; }
 
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+    }
 
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      line-height: 1.6;
+      margin: 0;
       min-height: 100vh;
+      color: var(--text);
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.65;
+      background:
+        radial-gradient(circle at 18% 8%, rgba(79, 142, 247, .28), transparent 30%),
+        radial-gradient(circle at 88% 12%, rgba(167, 139, 250, .22), transparent 30%),
+        radial-gradient(circle at 50% 78%, rgba(74, 222, 128, .08), transparent 34%),
+        linear-gradient(180deg, #070a12 0%, #0b1020 46%, #070a12 100%);
+      overflow-x: hidden;
     }
 
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .34;
+      background-image:
+        linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: linear-gradient(to bottom, black, transparent 76%);
+      z-index: -2;
+    }
 
-    /* ── NAV ── */
-    nav {
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at center, transparent 0%, rgba(3, 5, 10, .64) 74%);
+      z-index: -1;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      max-width: 100%;
+    }
+
+    .page-shell {
+      position: relative;
+      isolation: isolate;
+    }
+
+    .container {
+      width: min(var(--max), calc(100% - 40px));
+      margin-inline: auto;
+    }
+
+    .glass {
+      background: linear-gradient(180deg, rgba(15, 23, 42, .84), rgba(15, 23, 42, .48));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(18px);
+    }
+
+    .gradient-text {
+      background: linear-gradient(120deg, #ffffff 0%, #b8d0ff 40%, #9d8cff 70%, #72a7ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      width: fit-content;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(114, 167, 255, .28);
+      color: #c9dcff;
+      background: rgba(79, 142, 247, .10);
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent-3);
+      box-shadow: 0 0 18px rgba(74, 222, 128, .78);
+    }
+
+    /* ── NAV ─────────────────────────────────────────────── */
+
+    .site-nav {
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 50;
+      border-bottom: 1px solid rgba(148, 163, 184, .12);
+      background: rgba(7, 10, 18, .66);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav-inner {
+      height: 72px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 2rem;
-      height: 60px;
-      background: rgba(13,17,23,.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
+      gap: 22px;
     }
+
     .nav-brand {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: var(--text);
-      text-decoration: none;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: -.02em;
     }
-    .nav-brand img { width: 28px; height: 28px; border-radius: 6px; }
+
+    .nav-brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 10px 30px rgba(79, 142, 247, .22);
+    }
+
+    .nav-brand small {
+      display: block;
+      color: var(--text-muted);
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .02em;
+      margin-top: -4px;
+    }
+
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 1.5rem;
+      gap: 8px;
     }
-    .nav-links a { color: var(--text-muted); font-size: .9rem; transition: color .15s; }
-    .nav-links a:hover { color: var(--text); text-decoration: none; }
-    .lang-btn {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: .8rem;
-      cursor: pointer;
-      transition: all .15s;
-    }
-    .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* ── HERO ── */
-    .hero {
-      text-align: center;
-      padding: 6rem 2rem 4rem;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .hero-icon {
-      width: 88px;
-      height: 88px;
-      border-radius: 20px;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 0 0 1px var(--border), var(--shadow);
-    }
-    .hero h1 {
-      font-size: clamp(2rem, 5vw, 3rem);
-      font-weight: 800;
-      letter-spacing: -.02em;
-      margin-bottom: .75rem;
-      background: linear-gradient(135deg, #e6edf3 30%, #4f8ef7);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-sub {
-      font-size: 1.15rem;
+    .nav-links a,
+    .lang-btn {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 999px;
       color: var(--text-muted);
-      margin-bottom: 2rem;
-      max-width: 560px;
-      margin-left: auto;
-      margin-right: auto;
+      font-size: .9rem;
+      font-weight: 650;
+      border: 1px solid transparent;
+      transition: .18s ease;
+      background: transparent;
     }
-    .hero-badges {
-      display: flex;
-      justify-content: center;
-      gap: .5rem;
-      flex-wrap: wrap;
-      margin-bottom: 2.5rem;
+
+    .nav-links a:hover,
+    .lang-btn:hover {
+      color: var(--text);
+      border-color: var(--border);
+      background: rgba(148, 163, 184, .08);
+      text-decoration: none;
+      transform: translateY(-1px);
     }
-    .hero-badges img { height: 20px; }
+
+    .lang-btn {
+      cursor: pointer;
+      font: inherit;
+    }
+
+    /* ── HERO ─────────────────────────────────────────────── */
+
+    .hero {
+      position: relative;
+      padding: 88px 0 34px;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      width: min(760px, 80vw);
+      height: 360px;
+      transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(79, 142, 247, .25), transparent 65%);
+      filter: blur(18px);
+      z-index: -1;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.03fr) minmax(320px, .97fr);
+      align-items: center;
+      gap: 52px;
+    }
+
+    .hero-copy {
+      animation: fadeUp .8s ease both;
+    }
+
+    .hero h1 {
+      margin: 20px 0 18px;
+      max-width: 720px;
+      font-size: clamp(3.1rem, 8vw, 6.55rem);
+      line-height: .94;
+      letter-spacing: -.08em;
+      font-weight: 900;
+    }
+
+    .hero-lead {
+      margin: 0;
+      max-width: 640px;
+      color: #b7c3d7;
+      font-size: clamp(1.04rem, 1.7vw, 1.25rem);
+    }
+
     .hero-actions {
       display: flex;
-      justify-content: center;
-      gap: 1rem;
       flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 30px;
     }
+
     .btn {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 10px 24px;
-      border-radius: 8px;
-      font-size: .95rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all .15s;
-      text-decoration: none;
-    }
-    .btn-primary {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-    }
-    .btn-primary:hover { background: #3a7de0; text-decoration: none; }
-    .btn-outline {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-    .btn-outline:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
-
-    /* ── SCREENSHOT ── */
-    .screenshot-wrap {
-      max-width: 900px;
-      margin: 0 auto 5rem;
-      padding: 0 2rem;
-    }
-    .screenshot-frame {
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      overflow: hidden;
-      box-shadow: var(--shadow);
-    }
-    .screenshot-frame img {
-      width: 100%;
-      display: block;
-    }
-    .screenshot-gallery {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      max-width: 900px;
-      margin: 1rem auto 5rem;
-      padding: 0 2rem;
-    }
-    .screenshot-gallery .screenshot-frame img {
-      width: 100%;
-      display: block;
-    }
-    .screenshot-caption {
-      text-align: center;
-      font-size: .75rem;
-      color: var(--text-dim);
-      margin-top: .5rem;
-    }
-    @media (max-width: 600px) {
-      .screenshot-gallery { grid-template-columns: 1fr; }
-    }
-    /* placeholder when no screenshot */
-    .screenshot-placeholder {
-      width: 100%;
-      aspect-ratio: 16/9;
-      background: linear-gradient(135deg, #161b22 0%, #1c2128 40%, #1a2540 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
-      gap: 12px;
-      color: var(--text-dim);
-      font-size: .9rem;
-    }
-    .screenshot-placeholder svg { opacity: .3; }
-
-    /* ── FEATURES ── */
-    .section {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 2rem 5rem;
-    }
-    .section-title {
-      text-align: center;
-      font-size: 1.6rem;
-      font-weight: 700;
-      margin-bottom: .5rem;
-    }
-    .section-sub {
-      text-align: center;
-      color: var(--text-muted);
-      margin-bottom: 3rem;
-      font-size: .95rem;
-    }
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1rem;
-    }
-    .feature-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.5rem;
-      transition: border-color .15s;
-    }
-    .feature-card:hover { border-color: var(--accent); }
-    .feature-icon {
-      font-size: 1.6rem;
-      margin-bottom: .75rem;
-    }
-    .feature-card h3 {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: .4rem;
-    }
-    .feature-card p {
-      color: var(--text-muted);
-      font-size: .875rem;
-      line-height: 1.6;
-    }
-
-    /* ── STATS ── */
-    .stats-row {
-      display: flex;
-      justify-content: center;
-      gap: 3rem;
-      flex-wrap: wrap;
-      padding: 3rem 2rem;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 5rem;
-    }
-    .stat { text-align: center; }
-    .stat-num {
-      font-size: 2rem;
+      gap: 10px;
+      min-height: 48px;
+      padding: 0 20px;
+      border-radius: 999px;
       font-weight: 800;
-      color: var(--accent);
-    }
-    .stat-label {
-      font-size: .8rem;
-      color: var(--text-muted);
-      margin-top: 2px;
+      border: 1px solid transparent;
+      transition: .2s ease;
+      white-space: nowrap;
     }
 
-    /* ── DOWNLOAD ── */
-    .download-section {
-      max-width: 700px;
-      margin: 0 auto;
-      padding: 0 2rem 5rem;
-      text-align: center;
+    .btn-primary {
+      color: #06111f;
+      background: linear-gradient(135deg, #ffffff, #9bc2ff 48%, #72a7ff);
+      box-shadow: 0 16px 40px rgba(79, 142, 247, .28);
     }
-    .download-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 2rem 0;
-      text-align: left;
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 22px 58px rgba(79, 142, 247, .36);
     }
-    .download-table th {
-      color: var(--text-muted);
-      font-size: .8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      padding: .5rem 1rem;
-      border-bottom: 1px solid var(--border);
+
+    .btn-secondary {
+      color: var(--text);
+      border-color: var(--border-strong);
+      background: rgba(15, 23, 42, .62);
     }
-    .download-table td {
-      padding: .75rem 1rem;
-      border-bottom: 1px solid var(--border);
-      font-size: .9rem;
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      border-color: rgba(114, 167, 255, .44);
+      background: rgba(30, 41, 59, .72);
     }
-    .download-table tr:last-child td { border-bottom: none; }
-    .download-table a {
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .meta-pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      color: var(--accent);
-      font-weight: 500;
+      gap: 8px;
+      color: #bdc8da;
+      font-size: .82rem;
+      font-weight: 700;
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, .08);
+      border: 1px solid rgba(148, 163, 184, .14);
     }
-    .tag {
-      display: inline-block;
-      background: var(--accent-dim);
-      color: var(--accent);
-      font-size: .7rem;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 4px;
-    }
-    .warning-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1rem 1.25rem;
-      font-size: .85rem;
-      color: var(--text-muted);
-      text-align: left;
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-    }
-    .warning-box span:first-child { flex-shrink: 0; }
 
-    /* ── TECH STACK ── */
+    .hero-card {
+      position: relative;
+      animation: floatIn .9s .12s ease both;
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: -18px;
+      border-radius: 38px;
+      background:
+        radial-gradient(circle at 16% 14%, rgba(114, 167, 255, .28), transparent 34%),
+        radial-gradient(circle at 84% 86%, rgba(167, 139, 250, .22), transparent 34%);
+      filter: blur(18px);
+      z-index: -1;
+    }
+
+    .product-card {
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      background: rgba(15, 23, 42, .78);
+      border: 1px solid rgba(148, 163, 184, .18);
+      box-shadow: 0 34px 100px rgba(0, 0, 0, .52);
+    }
+
+    .product-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 54px;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(148, 163, 184, .16);
+      background: linear-gradient(180deg, rgba(30,41,59,.88), rgba(15,23,42,.72));
+    }
+
+    .traffic-lights {
+      display: inline-flex;
+      gap: 8px;
+    }
+
+    .traffic-lights span {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: rgba(148, 163, 184, .5);
+    }
+
+    .traffic-lights span:nth-child(1) { background: #ff6b6b; }
+    .traffic-lights span:nth-child(2) { background: #ffd166; }
+    .traffic-lights span:nth-child(3) { background: #4ade80; }
+
+    .product-card-title {
+      color: var(--text-muted);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .03em;
+    }
+
+    .product-card-body {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      min-height: 420px;
+      background:
+        linear-gradient(90deg, rgba(15, 23, 42, .96), rgba(15, 23, 42, .76)),
+        radial-gradient(circle at 80% 20%, rgba(79, 142, 247, .18), transparent 38%);
+    }
+
+    .mini-sidebar {
+      padding: 18px 12px;
+      border-right: 1px solid rgba(148, 163, 184, .13);
+      background: rgba(3, 7, 18, .22);
+    }
+
+    .mini-file {
+      height: 28px;
+      border-radius: 9px;
+      margin-bottom: 10px;
+      background: rgba(148, 163, 184, .11);
+    }
+
+    .mini-file.active {
+      background: linear-gradient(90deg, rgba(114, 167, 255, .35), rgba(167, 139, 250, .18));
+      border: 1px solid rgba(114, 167, 255, .28);
+    }
+
+    .mini-editor {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-width: 0;
+    }
+
+    .mini-pane {
+      padding: 22px;
+      min-width: 0;
+    }
+
+    .mini-pane + .mini-pane {
+      border-left: 1px solid rgba(148, 163, 184, .13);
+      background: rgba(255,255,255,.025);
+    }
+
+    .code-line {
+      height: 11px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, .20);
+      margin-bottom: 13px;
+    }
+
+    .code-line.short { width: 54%; }
+    .code-line.mid { width: 72%; }
+    .code-line.long { width: 92%; }
+    .code-line.accent { background: rgba(114, 167, 255, .48); }
+    .code-line.green { background: rgba(74, 222, 128, .42); }
+
+    .preview-title {
+      height: 30px;
+      width: 72%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(255,255,255,.82), rgba(114,167,255,.52));
+      margin-bottom: 24px;
+    }
+
+    .diagram-box {
+      margin-top: 26px;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(114, 167, 255, .20);
+      background: rgba(79, 142, 247, .08);
+    }
+
+    .diagram-flow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .diagram-node {
+      width: 54px;
+      height: 38px;
+      border-radius: 12px;
+      background: rgba(114, 167, 255, .22);
+      border: 1px solid rgba(114, 167, 255, .28);
+    }
+
+    .diagram-arrow {
+      height: 2px;
+      flex: 1;
+      background: rgba(114, 167, 255, .42);
+      position: relative;
+    }
+
+    .diagram-arrow::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: -4px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid rgba(114, 167, 255, .62);
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+
+    .badge-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .badge-strip img {
+      height: 21px;
+    }
+
+    /* ── COMMON SECTIONS ───────────────────────────────────── */
+
+    .section {
+      padding: 92px 0;
+    }
+
+    .section-head {
+      display: grid;
+      gap: 14px;
+      max-width: 740px;
+      margin: 0 auto 42px;
+      text-align: center;
+      justify-items: center;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      line-height: 1.02;
+      letter-spacing: -.055em;
+    }
+
+    .section-head p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 1.02rem;
+    }
+
+    /* ── SCREENSHOTS ───────────────────────────────────────── */
+
+    .screenshot-main {
+      margin-top: 44px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, .20);
+      background: rgba(15, 23, 42, .68);
+      box-shadow: var(--shadow-soft), var(--shadow-glow);
+      animation: fadeUp .8s .18s ease both;
+    }
+
+    .window-bar {
+      height: 48px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(148, 163, 184, .16);
+      background: rgba(15, 23, 42, .86);
+      color: var(--text-muted);
+      font-size: .8rem;
+      font-weight: 800;
+    }
+
+    .screenshot-main img {
+      display: block;
+      width: 100%;
+    }
+
+    .screenshot-gallery {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .shot-card {
+      overflow: hidden;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, .72);
+      transition: .22s ease;
+    }
+
+    .shot-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(114, 167, 255, .34);
+      box-shadow: 0 18px 56px rgba(0,0,0,.28);
+    }
+
+    .shot-card img {
+      display: block;
+      width: 100%;
+    }
+
+    .shot-caption {
+      margin: 0;
+      padding: 12px 14px 14px;
+      color: var(--text-muted);
+      font-size: .85rem;
+      border-top: 1px solid rgba(148, 163, 184, .12);
+    }
+
+    /* ── STATS ─────────────────────────────────────────────── */
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 42px;
+    }
+
+    .stat-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-md);
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, .86), rgba(15, 23, 42, .46));
+      border: 1px solid var(--border);
+    }
+
+    .stat-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -20px -60px;
+      height: 90px;
+      background: radial-gradient(circle, rgba(114, 167, 255, .18), transparent 68%);
+    }
+
+    .stat-num {
+      position: relative;
+      z-index: 1;
+      display: block;
+      color: #dceaff;
+      font-size: clamp(2rem, 4.2vw, 3.2rem);
+      font-weight: 900;
+      letter-spacing: -.05em;
+      line-height: 1;
+    }
+
+    .stat-label {
+      position: relative;
+      z-index: 1;
+      display: block;
+      margin-top: 10px;
+      color: var(--text-muted);
+      font-size: .88rem;
+      font-weight: 700;
+    }
+
+    /* ── FEATURES ──────────────────────────────────────────── */
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      position: relative;
+      min-height: 254px;
+      padding: 22px;
+      border-radius: var(--radius-md);
+      background:
+        linear-gradient(180deg, rgba(15, 23, 42, .82), rgba(15, 23, 42, .40));
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: .22s ease;
+    }
+
+    .feature-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      background: radial-gradient(circle at 28% 0%, rgba(114, 167, 255, .18), transparent 44%);
+      transition: .22s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(114, 167, 255, .38);
+      box-shadow: 0 22px 64px rgba(0,0,0,.28);
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-index {
+      position: relative;
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      margin-bottom: 28px;
+      border-radius: 12px;
+      color: #cfe0ff;
+      font-weight: 900;
+      font-size: .86rem;
+      background: rgba(114, 167, 255, .12);
+      border: 1px solid rgba(114, 167, 255, .22);
+    }
+
+    .feature-card h3 {
+      position: relative;
+      z-index: 1;
+      margin: 0 0 10px;
+      font-size: 1.04rem;
+      line-height: 1.25;
+    }
+
+    .feature-card p {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: var(--text-muted);
+      font-size: .91rem;
+    }
+
+    /* ── WORKFLOW ─────────────────────────────────────────── */
+
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .workflow-step {
+      padding: 24px;
+      border-radius: var(--radius-md);
+      background: rgba(15, 23, 42, .56);
+      border: 1px solid var(--border);
+    }
+
+    .workflow-step strong {
+      display: block;
+      color: var(--text);
+      font-size: 1.08rem;
+      margin: 10px 0 8px;
+    }
+
+    .workflow-step p {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: .92rem;
+    }
+
+    .workflow-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(114, 167, 255, .18), rgba(167, 139, 250, .12));
+      border: 1px solid rgba(148, 163, 184, .18);
+      font-size: 1.2rem;
+    }
+
+    /* ── DOWNLOAD ──────────────────────────────────────────── */
+
+    .download-panel {
+      display: grid;
+      grid-template-columns: 1fr 1.05fr;
+      gap: 24px;
+      align-items: stretch;
+      padding: 28px;
+      border-radius: var(--radius-lg);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(114,167,255,.14), transparent 34%),
+        linear-gradient(180deg, rgba(15, 23, 42, .88), rgba(15, 23, 42, .52));
+      border: 1px solid rgba(148, 163, 184, .18);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .download-copy {
+      padding: 18px;
+    }
+
+    .download-copy h2 {
+      margin: 18px 0 12px;
+      font-size: clamp(2rem, 4vw, 3.3rem);
+      line-height: 1;
+      letter-spacing: -.06em;
+    }
+
+    .download-copy p {
+      color: var(--text-muted);
+      margin: 0 0 22px;
+    }
+
+    .download-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .download-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(7, 10, 18, .42);
+      border: 1px solid rgba(148, 163, 184, .14);
+      transition: .18s ease;
+    }
+
+    .download-item:hover {
+      border-color: rgba(114, 167, 255, .34);
+      transform: translateY(-2px);
+      background: rgba(30, 41, 59, .48);
+    }
+
+    .download-item strong {
+      display: block;
+      font-size: .95rem;
+      margin-bottom: 4px;
+    }
+
+    .download-item span {
+      display: block;
+      color: var(--text-muted);
+      font-size: .82rem;
+    }
+
+    .download-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 92px;
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 999px;
+      color: #dbeaff;
+      font-weight: 800;
+      font-size: .82rem;
+      border: 1px solid rgba(114, 167, 255, .26);
+      background: rgba(114, 167, 255, .10);
+    }
+
+    .tag {
+      display: inline-flex;
+      width: fit-content;
+      margin-left: 8px;
+      color: #052313;
+      background: #86efac;
+      border-radius: 999px;
+      font-size: .7rem;
+      font-weight: 900;
+      padding: 2px 7px;
+      vertical-align: middle;
+    }
+
+    .warning-box {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-top: 18px;
+      color: #dfcda9;
+      border: 1px solid rgba(248, 199, 109, .18);
+      background: rgba(248, 199, 109, .08);
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-size: .88rem;
+    }
+
+    /* ── TECH ──────────────────────────────────────────────── */
+
     .stack-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: .75rem;
       justify-content: center;
-      margin-top: 2rem;
+      gap: 10px;
+      max-width: 880px;
+      margin: 34px auto 0;
     }
+
     .stack-chip {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 5px 14px;
-      font-size: .85rem;
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 0 15px;
+      color: #c8d3e5;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, .08);
+      border: 1px solid rgba(148, 163, 184, .16);
+      font-size: .9rem;
+      font-weight: 750;
+    }
+
+    /* ── FOOTER ────────────────────────────────────────────── */
+
+    .footer-cta {
+      padding: 84px 0 68px;
+    }
+
+    .footer-card {
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+      padding: 54px 24px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148, 163, 184, .18);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(114, 167, 255, .22), transparent 38%),
+        linear-gradient(180deg, rgba(15, 23, 42, .78), rgba(15, 23, 42, .46));
+      box-shadow: var(--shadow-soft);
+    }
+
+    .footer-card h2 {
+      margin: 0 auto 14px;
+      max-width: 760px;
+      font-size: clamp(2.1rem, 5vw, 4.5rem);
+      line-height: .96;
+      letter-spacing: -.07em;
+    }
+
+    .footer-card p {
+      margin: 0 auto 26px;
+      max-width: 620px;
       color: var(--text-muted);
     }
 
-    /* ── FOOTER ── */
     footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem;
-      text-align: center;
-      font-size: .85rem;
+      padding: 28px 0 44px;
       color: var(--text-dim);
+      font-size: .9rem;
+      text-align: center;
     }
-    footer a { color: var(--text-muted); }
-    footer a:hover { color: var(--text); }
 
-    /* ── LANG TOGGLE ── */
-    [data-lang="en"] .zh { display: none; }
-    [data-lang="zh"] .en { display: none; }
+    footer a {
+      color: #aebbd0;
+      font-weight: 750;
+    }
 
-    @media (max-width: 600px) {
-      nav { padding: 0 1rem; }
-      .nav-links { gap: 1rem; }
-      .hero { padding: 4rem 1.5rem 3rem; }
-      .stats-row { gap: 2rem; }
+    footer a:hover {
+      color: var(--text);
+    }
+
+    /* ── LANG ──────────────────────────────────────────────── */
+
+    [data-lang="en"] .zh { display: none !important; }
+    [data-lang="zh"] .en { display: none !important; }
+
+    /* ── ANIMATION ─────────────────────────────────────────── */
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity .72s ease, transform .72s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes floatIn {
+      from { opacity: 0; transform: translateY(24px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+
+      .reveal {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* ── RESPONSIVE ────────────────────────────────────────── */
+
+    @media (max-width: 1040px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-copy {
+        text-align: center;
+      }
+
+      .hero-copy .eyebrow,
+      .hero-actions,
+      .hero-meta {
+        justify-content: center;
+        margin-inline: auto;
+      }
+
+      .hero h1,
+      .hero-lead {
+        margin-inline: auto;
+      }
+
+      .hero-card {
+        max-width: 760px;
+        margin-inline: auto;
+      }
+
+      .features-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .download-panel {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .container {
+        width: min(100% - 28px, var(--max));
+      }
+
+      .nav-inner {
+        height: auto;
+        min-height: 68px;
+        padding: 12px 0;
+        align-items: flex-start;
+      }
+
+      .nav-links {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .nav-links a,
+      .lang-btn {
+        min-height: 32px;
+        padding-inline: 9px;
+        font-size: .8rem;
+      }
+
+      .nav-brand small {
+        display: none;
+      }
+
+      .hero {
+        padding-top: 56px;
+      }
+
+      .hero h1 {
+        font-size: clamp(3.2rem, 16vw, 4.5rem);
+      }
+
+      .product-card-body {
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+
+      .mini-sidebar {
+        display: none;
+      }
+
+      .mini-editor {
+        grid-template-columns: 1fr;
+      }
+
+      .mini-pane + .mini-pane {
+        border-left: 0;
+        border-top: 1px solid rgba(148, 163, 184, .13);
+      }
+
+      .screenshot-gallery,
+      .features-grid,
+      .workflow,
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section {
+        padding: 70px 0;
+      }
+
+      .download-panel {
+        padding: 18px;
+      }
+
+      .download-copy {
+        padding: 8px;
+      }
+
+      .download-item {
+        grid-template-columns: 1fr;
+      }
+
+      .download-link {
+        width: fit-content;
+      }
     }
   </style>
 </head>
 <body>
+<div class="page-shell">
 
-<!-- NAV -->
-<nav>
-  <a class="nav-brand" href="#">
-    <img src="https://raw.githubusercontent.com/Racious/MD-Forge/main/src-tauri/icons/128x128.png" alt="MD Forge" />
-    MD Forge
-  </a>
-  <div class="nav-links">
-    <a href="#features"><span class="zh">功能</span><span class="en">Features</span></a>
-    <a href="#download"><span class="zh">下載</span><span class="en">Download</span></a>
-    <a href="https://github.com/Racious/MD-Forge" target="_blank">GitHub</a>
-    <button class="lang-btn" onclick="toggleLang()">EN / 中文</button>
-  </div>
-</nav>
+  <!-- NAV -->
+  <header class="site-nav">
+    <div class="container nav-inner">
+      <a class="nav-brand" href="#">
+        <img src="https://raw.githubusercontent.com/Racious/MD-Forge/main/src-tauri/icons/128x128.png" alt="MD Forge" />
+        <span>
+          MD Forge
+          <small>Local-first Markdown Editor</small>
+        </span>
+      </a>
 
-<!-- HERO -->
-<section class="hero">
-  <img class="hero-icon"
-    src="https://raw.githubusercontent.com/Racious/MD-Forge/main/src-tauri/icons/128x128.png"
-    alt="MD Forge" />
-
-  <h1>MD Forge</h1>
-
-  <p class="hero-sub">
-    <span class="zh">本地優先的桌面 Markdown 編輯器。<br/>即時預覽、多分頁、Mermaid 圖表，所有資料僅存於本機。</span>
-    <span class="en">A local-first desktop Markdown editor.<br/>Live preview, multi-tab, Mermaid diagrams — your data stays on your machine.</span>
-  </p>
-
-  <div class="hero-badges">
-    <img src="https://img.shields.io/github/v/release/Racious/MD-Forge?style=flat-square&color=4f8ef7" alt="Release" />
-    <img src="https://img.shields.io/badge/platform-Windows-lightgrey?style=flat-square" alt="Platform" />
-    <img src="https://img.shields.io/badge/built%20with-Tauri%202-orange?style=flat-square" alt="Tauri 2" />
-    <img src="https://img.shields.io/badge/Vue-3-42b883?style=flat-square" alt="Vue 3" />
-  </div>
-
-  <div class="hero-actions">
-    <a class="btn btn-primary" href="#download">
-      ↓ <span class="zh">立即下載</span><span class="en">Download</span>
-    </a>
-    <a class="btn btn-outline" href="https://github.com/Racious/MD-Forge" target="_blank">
-      ☆ <span class="zh">查看原始碼</span><span class="en">View Source</span>
-    </a>
-  </div>
-</section>
-
-<!-- SCREENSHOT -->
-<div class="screenshot-wrap">
-  <div class="screenshot-frame">
-    <img src="assets/screenshot-editor.jpg" alt="MD Forge Split View with Mermaid Diagrams" />
-  </div>
-</div>
-
-<!-- SCREENSHOT GALLERY -->
-<div class="screenshot-gallery">
-  <div>
-    <div class="screenshot-frame">
-      <img src="assets/screenshot-home.jpg" alt="MD Forge Home Screen" />
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="#features"><span class="zh">功能</span><span class="en">Features</span></a>
+        <a href="#download"><span class="zh">下載</span><span class="en">Download</span></a>
+        <a href="#stack"><span class="zh">技術棧</span><span class="en">Stack</span></a>
+        <a href="https://github.com/Racious/MD-Forge" target="_blank" rel="noreferrer">GitHub</a>
+        <button class="lang-btn" type="button" onclick="toggleLang()">EN / 中文</button>
+      </nav>
     </div>
-    <p class="screenshot-caption"><span class="zh">首頁 — 最近開啟的檔案</span><span class="en">Home — Recent files</span></p>
-  </div>
-  <div>
-    <div class="screenshot-frame">
-      <img src="assets/screenshot-home-empty.jpg" alt="MD Forge Home Screen Empty" />
-    </div>
-    <p class="screenshot-caption"><span class="zh">首頁 — 初始狀態</span><span class="en">Home — Initial state</span></p>
-  </div>
-</div>
+  </header>
 
-<!-- STATS -->
-<div class="stats-row">
-  <div class="stat">
-    <div class="stat-num">0</div>
-    <div class="stat-label"><span class="zh">網路請求</span><span class="en">Network requests</span></div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">100%</div>
-    <div class="stat-label"><span class="zh">資料留在本機</span><span class="en">Data stays local</span></div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">3</div>
-    <div class="stat-label"><span class="zh">開啟方式</span><span class="en">Ways to open files</span></div>
-  </div>
-  <div class="stat">
-    <div class="stat-num">∞</div>
-    <div class="stat-label"><span class="zh">可同時開啟的分頁</span><span class="en">Tabs at once</span></div>
-  </div>
-</div>
+  <!-- HERO -->
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow">
+            <span class="zh">本地優先 · 桌面 Markdown 編輯器</span>
+            <span class="en">Local-first · Desktop Markdown Editor</span>
+          </span>
 
-<!-- FEATURES -->
-<section class="section" id="features">
-  <h2 class="section-title"><span class="zh">功能特色</span><span class="en">Features</span></h2>
-  <p class="section-sub">
-    <span class="zh">寫作需要的一切，沒有多餘的東西。</span>
-    <span class="en">Everything you need to write. Nothing you don't.</span>
-  </p>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon">📑</div>
-      <h3><span class="zh">多分頁編輯</span><span class="en">Multi-tab Editing</span></h3>
-      <p>
-        <span class="zh">同時開啟多個文件，相同檔案不重複開啟。關閉所有分頁後自動回到首頁。</span>
-        <span class="en">Open multiple documents at once. Duplicate tabs are prevented. Closing all tabs returns to the home screen.</span>
-      </p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">⚡</div>
-      <h3><span class="zh">即時預覽</span><span class="en">Live Preview</span></h3>
-      <p>
-        <span class="zh">Edit / Split / Preview 三種模式隨時切換，Split 模式下左右同步捲動。</span>
-        <span class="en">Switch between Edit, Split, and Preview modes anytime. Split mode keeps editor and preview in sync.</span>
-      </p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🧜</div>
-      <h3><span class="zh">Mermaid 圖表</span><span class="en">Mermaid Diagrams</span></h3>
-      <p>
-        <span class="zh">流程圖、循序圖、甘特圖等直接在 Markdown 中繪製，亮暗主題自動切換。</span>
-        <span class="en">Render flowcharts, sequence diagrams, Gantt charts and more directly in Markdown. Auto theme-aware.</span>
-      </p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🖼️</div>
-      <h3><span class="zh">完整圖片支援</span><span class="en">Full Image Support</span></h3>
-      <p>
-        <span class="zh">本機圖片（相對路徑）、網路圖片、Data URI Base64 圖片均可正確顯示。</span>
-        <span class="en">Local images (relative paths), remote images, and Data URI Base64 images all render correctly.</span>
-      </p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🗂️</div>
-      <h3><span class="zh">TOC 側邊欄</span><span class="en">TOC Sidebar</span></h3>
-      <p>
-        <span class="zh">自動從標題生成目錄，點擊跳至對應段落，支援中文等 Unicode 錨點。</span>
-        <span class="en">Auto-generated table of contents. Click to jump to any heading. Full Unicode anchor support.</span>
-      </p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📂</div>
-      <h3><span class="zh">彈性開檔</span><span class="en">Flexible File Opening</span></h3>
-      <p>
-        <span class="zh">雙擊關聯開啟、拖曳進視窗、命令列傳入路徑，三種方式皆在同一視窗新分頁開啟。</span>
-        <span class="en">Double-click, drag & drop, or pass a path via CLI — all open in a new tab within the same window.</span>
-      </p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🎨</div>
-      <h3><span class="zh">主題與設定</span><span class="en">Themes & Settings</span></h3>
-      <p>
-        <span class="zh">亮色 / 暗色主題切換，字體大小、自動換行、設定皆持久化儲存。</span>
-        <span class="en">Light and dark themes, font size, word wrap — all settings are persisted locally.</span>
-      </p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📤</div>
-      <h3><span class="zh">HTML 匯出</span><span class="en">HTML Export</span></h3>
-      <p>
-        <span class="zh">一鍵匯出為含完整樣式的獨立 HTML 檔案，直接在瀏覽器開啟分享。</span>
-        <span class="en">Export to a self-contained HTML file with full styling. Open it in any browser and share it anywhere.</span>
-      </p>
-    </div>
-  </div>
-</section>
+          <h1 class="gradient-text">
+            <span class="zh">鍛造你的<br/>Markdown 工作流。</span>
+            <span class="en">Forge your<br/>Markdown workflow.</span>
+          </h1>
 
-<!-- DOWNLOAD -->
-<section class="download-section" id="download">
-  <h2 class="section-title"><span class="zh">下載</span><span class="en">Download</span></h2>
-  <p class="section-sub" style="margin-bottom:0">
-    <span class="zh">僅支援 Windows，更多平台未來規劃中。</span>
-    <span class="en">Windows only for now. More platforms planned.</span>
-  </p>
+          <p class="hero-lead">
+            <span class="zh">
+              MD Forge 是一款以本機檔案為核心的桌面 Markdown 編輯器。
+              支援即時預覽、多分頁、Mermaid 圖表與 HTML 匯出，讓寫作、整理與技術文件都更安靜而流暢。
+            </span>
+            <span class="en">
+              MD Forge is a local-first desktop Markdown editor with live preview, multi-tab editing,
+              Mermaid diagrams, and HTML export — built for quiet, focused writing.
+            </span>
+          </p>
 
-  <table class="download-table">
-    <thead>
-      <tr>
-        <th><span class="zh">檔案</span><span class="en">File</span></th>
-        <th><span class="zh">說明</span><span class="en">Description</span></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>
-          <a href="https://github.com/Racious/MD-Forge/releases/latest">
-            ↓ MD.Forge_x64-setup.exe
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#download">
+              ↓ <span class="zh">下載 Windows 版</span><span class="en">Download for Windows</span>
+            </a>
+            <a class="btn btn-secondary" href="https://github.com/Racious/MD-Forge" target="_blank" rel="noreferrer">
+              ☆ <span class="zh">查看原始碼</span><span class="en">View Source</span>
+            </a>
+          </div>
+
+          <div class="hero-meta" aria-label="Highlights">
+            <span class="meta-pill">🔒 <span class="zh">資料留在本機</span><span class="en">Local files</span></span>
+            <span class="meta-pill">⚡ <span class="zh">即時預覽</span><span class="en">Live preview</span></span>
+            <span class="meta-pill">🧜 <span class="zh">Mermaid 圖表</span><span class="en">Mermaid diagrams</span></span>
+          </div>
+
+          <div class="badge-strip" aria-label="Project badges">
+            <img src="https://img.shields.io/github/v/release/Racious/MD-Forge?style=flat-square&color=4f8ef7" alt="Release" />
+            <img src="https://img.shields.io/badge/platform-Windows-lightgrey?style=flat-square" alt="Platform" />
+            <img src="https://img.shields.io/badge/built%20with-Tauri%202-orange?style=flat-square" alt="Tauri 2" />
+            <img src="https://img.shields.io/badge/Vue-3-42b883?style=flat-square" alt="Vue 3" />
+          </div>
+        </div>
+
+        <div class="hero-card" aria-label="MD Forge interface preview">
+          <div class="product-card">
+            <div class="product-card-top">
+              <div class="traffic-lights" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="product-card-title">MD Forge</div>
+            </div>
+            <div class="product-card-body">
+              <aside class="mini-sidebar" aria-hidden="true">
+                <div class="mini-file active"></div>
+                <div class="mini-file"></div>
+                <div class="mini-file"></div>
+                <div class="mini-file"></div>
+                <div class="mini-file"></div>
+              </aside>
+              <div class="mini-editor" aria-hidden="true">
+                <div class="mini-pane">
+                  <div class="code-line accent long"></div>
+                  <div class="code-line mid"></div>
+                  <div class="code-line long"></div>
+                  <div class="code-line short"></div>
+                  <br/>
+                  <div class="code-line green mid"></div>
+                  <div class="code-line long"></div>
+                  <div class="code-line mid"></div>
+                  <div class="code-line short"></div>
+                  <br/>
+                  <div class="code-line accent mid"></div>
+                  <div class="code-line long"></div>
+                  <div class="code-line mid"></div>
+                </div>
+                <div class="mini-pane">
+                  <div class="preview-title"></div>
+                  <div class="code-line long"></div>
+                  <div class="code-line mid"></div>
+                  <div class="code-line short"></div>
+                  <div class="diagram-box">
+                    <div class="diagram-flow">
+                      <div class="diagram-node"></div>
+                      <div class="diagram-arrow"></div>
+                      <div class="diagram-node"></div>
+                      <div class="diagram-arrow"></div>
+                      <div class="diagram-node"></div>
+                    </div>
+                  </div>
+                  <br/>
+                  <div class="code-line long"></div>
+                  <div class="code-line mid"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- SCREENSHOT -->
+  <section class="section" aria-labelledby="screenshots-title">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">
+          <span class="zh">介面展示</span>
+          <span class="en">Interface</span>
+        </span>
+        <h2 id="screenshots-title">
+          <span class="zh">一邊寫作，一邊看見成果。</span>
+          <span class="en">Write and preview in the same flow.</span>
+        </h2>
+        <p>
+          <span class="zh">從首頁、最近檔案到 Split View，MD Forge 讓 Markdown 編輯流程維持清楚、直接而不打擾。</span>
+          <span class="en">From recent files to split view, MD Forge keeps the editing experience clear, direct, and distraction-free.</span>
+        </p>
+      </div>
+
+      <div class="screenshot-main reveal">
+        <div class="window-bar">
+          <div class="traffic-lights" aria-hidden="true"><span></span><span></span><span></span></div>
+          <span>Split View · Mermaid Preview</span>
+        </div>
+        <img src="assets/screenshot-editor.jpg" alt="MD Forge Split View with Mermaid Diagrams" />
+      </div>
+
+      <div class="screenshot-gallery">
+        <article class="shot-card reveal">
+          <img src="assets/screenshot-home.jpg" alt="MD Forge Home Screen" />
+          <p class="shot-caption"><span class="zh">首頁 — 最近開啟的檔案</span><span class="en">Home — Recent files</span></p>
+        </article>
+        <article class="shot-card reveal">
+          <img src="assets/screenshot-home-empty.jpg" alt="MD Forge Home Screen Empty" />
+          <p class="shot-caption"><span class="zh">首頁 — 初始狀態</span><span class="en">Home — Initial state</span></p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="section" aria-labelledby="privacy-title">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">
+          <span class="zh">Local-first by design</span>
+          <span class="en">Local-first by design</span>
+        </span>
+        <h2 id="privacy-title">
+          <span class="zh">不用雲端，也能好好寫作。</span>
+          <span class="en">No cloud required. Just your files.</span>
+        </h2>
+        <p>
+          <span class="zh">以本機檔案為中心，降低依賴，讓文件掌控權回到使用者手上。</span>
+          <span class="en">A file-centered workflow that keeps ownership and control on your machine.</span>
+        </p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card reveal">
+          <span class="stat-num">0</span>
+          <span class="stat-label"><span class="zh">網路請求</span><span class="en">Network requests</span></span>
+        </div>
+        <div class="stat-card reveal">
+          <span class="stat-num">100%</span>
+          <span class="stat-label"><span class="zh">資料留在本機</span><span class="en">Data stays local</span></span>
+        </div>
+        <div class="stat-card reveal">
+          <span class="stat-num">3</span>
+          <span class="stat-label"><span class="zh">開啟方式</span><span class="en">Ways to open files</span></span>
+        </div>
+        <div class="stat-card reveal">
+          <span class="stat-num">∞</span>
+          <span class="stat-label"><span class="zh">可同時開啟的分頁</span><span class="en">Tabs at once</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">
+          <span class="zh">功能特色</span>
+          <span class="en">Features</span>
+        </span>
+        <h2>
+          <span class="zh">為技術文件與日常筆記打造。</span>
+          <span class="en">Built for docs, notes, and focused writing.</span>
+        </h2>
+        <p>
+          <span class="zh">寫作需要的一切，保留清楚的流程；不必要的干擾，則保持在視線之外。</span>
+          <span class="en">Everything you need for Markdown writing, without adding noise to your workflow.</span>
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <article class="feature-card reveal">
+          <span class="feature-index">01</span>
+          <h3><span class="zh">多分頁編輯</span><span class="en">Multi-tab Editing</span></h3>
+          <p><span class="zh">同時開啟多個文件，相同檔案不重複開啟。關閉所有分頁後自動回到首頁。</span><span class="en">Open multiple documents at once, avoid duplicate tabs, and return home when every tab is closed.</span></p>
+        </article>
+
+        <article class="feature-card reveal">
+          <span class="feature-index">02</span>
+          <h3><span class="zh">即時預覽</span><span class="en">Live Preview</span></h3>
+          <p><span class="zh">Edit / Split / Preview 三種模式隨時切換，Split 模式下左右同步捲動。</span><span class="en">Switch between Edit, Split, and Preview. Split mode keeps editor and preview in sync.</span></p>
+        </article>
+
+        <article class="feature-card reveal">
+          <span class="feature-index">03</span>
+          <h3><span class="zh">Mermaid 圖表</span><span class="en">Mermaid Diagrams</span></h3>
+          <p><span class="zh">流程圖、循序圖、甘特圖等直接在 Markdown 中繪製，亮暗主題自動切換。</span><span class="en">Render flowcharts, sequence diagrams, Gantt charts, and more directly in Markdown.</span></p>
+        </article>
+
+        <article class="feature-card reveal">
+          <span class="feature-index">04</span>
+          <h3><span class="zh">完整圖片支援</span><span class="en">Full Image Support</span></h3>
+          <p><span class="zh">本機圖片、網路圖片、Data URI Base64 圖片均可正確顯示。</span><span class="en">Local images, remote images, and Data URI Base64 images all render correctly.</span></p>
+        </article>
+
+        <article class="feature-card reveal">
+          <span class="feature-index">05</span>
+          <h3><span class="zh">TOC 側邊欄</span><span class="en">TOC Sidebar</span></h3>
+          <p><span class="zh">自動從標題生成目錄，點擊跳至對應段落，支援中文等 Unicode 錨點。</span><span class="en">Auto-generate a table of contents with Unicode anchor support.</span></p>
+        </article>
+
+        <article class="feature-card reveal">
+          <span class="feature-index">06</span>
+          <h3><span class="zh">彈性開檔</span><span class="en">Flexible File Opening</span></h3>
+          <p><span class="zh">雙擊關聯、拖曳、命令列傳入路徑，皆可在同一視窗新分頁開啟。</span><span class="en">Open by file association, drag and drop, or CLI path — all in one window.</span></p>
+        </article>
+
+        <article class="feature-card reveal">
+          <span class="feature-index">07</span>
+          <h3><span class="zh">主題與設定</span><span class="en">Themes & Settings</span></h3>
+          <p><span class="zh">亮色 / 暗色主題、字體大小、自動換行與使用偏好皆持久化儲存。</span><span class="en">Light/dark themes, font size, word wrap, and preferences are persisted locally.</span></p>
+        </article>
+
+        <article class="feature-card reveal">
+          <span class="feature-index">08</span>
+          <h3><span class="zh">HTML 匯出</span><span class="en">HTML Export</span></h3>
+          <p><span class="zh">一鍵匯出為含完整樣式的獨立 HTML 檔案，直接在瀏覽器開啟分享。</span><span class="en">Export a styled, standalone HTML file for opening and sharing in any browser.</span></p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORKFLOW -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">
+          <span class="zh">使用流程</span>
+          <span class="en">Workflow</span>
+        </span>
+        <h2>
+          <span class="zh">打開、撰寫、預覽、輸出。</span>
+          <span class="en">Open. Write. Preview. Export.</span>
+        </h2>
+      </div>
+
+      <div class="workflow">
+        <article class="workflow-step reveal">
+          <span class="workflow-icon">📂</span>
+          <strong><span class="zh">開啟本機文件</span><span class="en">Open local files</span></strong>
+          <p><span class="zh">透過拖曳、雙擊或命令列快速載入 Markdown 文件。</span><span class="en">Load Markdown files by drag-and-drop, double-click, or command line.</span></p>
+        </article>
+
+        <article class="workflow-step reveal">
+          <span class="workflow-icon">✍️</span>
+          <strong><span class="zh">專注編輯與預覽</span><span class="en">Edit with preview</span></strong>
+          <p><span class="zh">在 Split View 中同步編輯與預覽，技術文件與流程圖都能即時確認。</span><span class="en">Write in split view and validate technical docs or diagrams instantly.</span></p>
+        </article>
+
+        <article class="workflow-step reveal">
+          <span class="workflow-icon">📤</span>
+          <strong><span class="zh">匯出 HTML 分享</span><span class="en">Export and share</span></strong>
+          <p><span class="zh">將文件輸出為可獨立開啟的 HTML，方便歸檔、交付或分享。</span><span class="en">Export to standalone HTML for archiving, delivery, or sharing.</span></p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section class="section" id="download">
+    <div class="container">
+      <div class="download-panel reveal">
+        <div class="download-copy">
+          <span class="eyebrow">
+            <span class="zh">Windows 版本</span>
+            <span class="en">Windows release</span>
+          </span>
+
+          <h2>
+            <span class="zh">開始鍛造你的文件。</span>
+            <span class="en">Start forging your docs.</span>
+          </h2>
+
+          <p>
+            <span class="zh">目前以 Windows 版本為主。更多平台可依後續需求規劃。</span>
+            <span class="en">Windows is currently supported. More platforms can be planned later.</span>
+          </p>
+
+          <a class="btn btn-primary" href="https://github.com/Racious/MD-Forge/releases/latest" target="_blank" rel="noreferrer">
+            ↓ <span class="zh">前往最新發行版</span><span class="en">Latest release</span>
           </a>
-          <span class="tag"><span class="zh">建議</span><span class="en">Recommended</span></span>
-        </td>
-        <td><span class="zh">安裝版</span><span class="en">Installer</span></td>
-      </tr>
-      <tr>
-        <td>
-          <a href="https://github.com/Racious/MD-Forge/releases/latest">
-            ↓ MD.Forge_x64_en-US.msi
+
+          <div class="warning-box">
+            <span>⚠️</span>
+            <span>
+              <span class="zh">首次執行可能出現 Windows SmartScreen 警告。若您信任來源，點擊「其他資訊」→「仍要執行」即可繼續。</span>
+              <span class="en">Windows SmartScreen may warn on first launch. If you trust the source, click "More info" → "Run anyway".</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="download-list">
+          <a class="download-item" href="https://github.com/Racious/MD-Forge/releases/latest" target="_blank" rel="noreferrer">
+            <span>
+              <strong>MD.Forge_x64-setup.exe <em class="tag"><span class="zh">建議</span><span class="en">Recommended</span></em></strong>
+              <span><span class="zh">安裝版，適合一般使用者。</span><span class="en">Installer, recommended for most users.</span></span>
+            </span>
+            <span class="download-link"><span class="zh">下載</span><span class="en">Download</span></span>
           </a>
-        </td>
-        <td><span class="zh">MSI 安裝包</span><span class="en">MSI Package</span></td>
-      </tr>
-      <tr>
-        <td>
-          <a href="https://github.com/Racious/MD-Forge/releases/latest">
-            ↓ MD.Forge.exe
+
+          <a class="download-item" href="https://github.com/Racious/MD-Forge/releases/latest" target="_blank" rel="noreferrer">
+            <span>
+              <strong>MD.Forge_x64_en-US.msi</strong>
+              <span><span class="zh">MSI 安裝包，適合部署或系統管理需求。</span><span class="en">MSI package for deployment or system management.</span></span>
+            </span>
+            <span class="download-link"><span class="zh">下載</span><span class="en">Download</span></span>
           </a>
-        </td>
-        <td><span class="zh">免安裝版</span><span class="en">Portable</span></td>
-      </tr>
-    </tbody>
-  </table>
 
-  <div class="warning-box">
-    <span>⚠️</span>
-    <span>
-      <span class="zh">首次執行可能出現 Windows SmartScreen 警告（應用程式尚未完成程式碼簽署）。點擊「其他資訊」→「仍要執行」即可繼續。</span>
-      <span class="en">Windows SmartScreen may warn on first launch because the app is not yet code-signed. Click "More info" → "Run anyway" to proceed.</span>
-    </span>
-  </div>
-</section>
+          <a class="download-item" href="https://github.com/Racious/MD-Forge/releases/latest" target="_blank" rel="noreferrer">
+            <span>
+              <strong>MD.Forge.exe</strong>
+              <span><span class="zh">免安裝版，下載後可直接執行。</span><span class="en">Portable executable, run directly after download.</span></span>
+            </span>
+            <span class="download-link"><span class="zh">下載</span><span class="en">Download</span></span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<!-- TECH STACK -->
-<section class="section" style="padding-bottom:4rem; text-align:center">
-  <h2 class="section-title"><span class="zh">技術棧</span><span class="en">Tech Stack</span></h2>
-  <div class="stack-grid">
-    <span class="stack-chip">Tauri 2</span>
-    <span class="stack-chip">Rust</span>
-    <span class="stack-chip">Vue 3</span>
-    <span class="stack-chip">TypeScript</span>
-    <span class="stack-chip">Pinia</span>
-    <span class="stack-chip">CodeMirror 6</span>
-    <span class="stack-chip">markdown-it</span>
-    <span class="stack-chip">Mermaid 11</span>
-    <span class="stack-chip">DOMPurify</span>
-    <span class="stack-chip">Vite 6</span>
-  </div>
-</section>
+  <!-- TECH STACK -->
+  <section class="section" id="stack">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">
+          <span class="zh">技術棧</span>
+          <span class="en">Tech stack</span>
+        </span>
+        <h2>
+          <span class="zh">以現代桌面技術打造。</span>
+          <span class="en">Built with a modern desktop stack.</span>
+        </h2>
+      </div>
 
-<!-- FOOTER -->
-<footer>
-  <p>
-    <span class="zh">由</span><span class="en">Built by</span>
-    <a href="https://github.com/Racious" target="_blank">Racious</a>
-    &nbsp;·&nbsp;
-    <a href="https://github.com/Racious/MD-Forge" target="_blank">GitHub</a>
-    &nbsp;·&nbsp;
-    <a href="https://github.com/Racious/MD-Forge/releases" target="_blank">
-      <span class="zh">發行版本</span><span class="en">Releases</span>
-    </a>
-  </p>
-  <p style="margin-top:.5rem; font-size:.75rem">
-    MD Forge — <span class="zh">本地優先，隱私自主。</span><span class="en">Local-first, privacy by design.</span>
-  </p>
-</footer>
+      <div class="stack-grid reveal">
+        <span class="stack-chip">Tauri 2</span>
+        <span class="stack-chip">Rust</span>
+        <span class="stack-chip">Vue 3</span>
+        <span class="stack-chip">TypeScript</span>
+        <span class="stack-chip">Pinia</span>
+        <span class="stack-chip">CodeMirror 6</span>
+        <span class="stack-chip">markdown-it</span>
+        <span class="stack-chip">Mermaid 11</span>
+        <span class="stack-chip">DOMPurify</span>
+        <span class="stack-chip">Vite 6</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER CTA -->
+  <section class="footer-cta">
+    <div class="container">
+      <div class="footer-card reveal">
+        <h2 class="gradient-text">
+          <span class="zh">你的 Markdown，應該安靜地屬於你。</span>
+          <span class="en">Your Markdown should quietly belong to you.</span>
+        </h2>
+        <p>
+          <span class="zh">MD Forge 將文件保留在本機，以乾淨的桌面體驗承載日常筆記、技術文件與知識整理。</span>
+          <span class="en">MD Forge keeps your files local and gives your notes, docs, and knowledge base a clean desktop home.</span>
+        </p>
+        <div class="hero-actions" style="justify-content:center">
+          <a class="btn btn-primary" href="#download">
+            ↓ <span class="zh">下載 MD Forge</span><span class="en">Download MD Forge</span>
+          </a>
+          <a class="btn btn-secondary" href="https://github.com/Racious/MD-Forge" target="_blank" rel="noreferrer">
+            GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <p>
+        <span class="zh">由</span><span class="en">Built by</span>
+        <a href="https://github.com/Racious" target="_blank" rel="noreferrer">Racious</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/Racious/MD-Forge" target="_blank" rel="noreferrer">GitHub</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/Racious/MD-Forge/releases" target="_blank" rel="noreferrer">
+          <span class="zh">發行版本</span><span class="en">Releases</span>
+        </a>
+      </p>
+      <p style="margin-top:.5rem; font-size:.78rem">
+        MD Forge — <span class="zh">本地優先，隱私自主。</span><span class="en">Local-first, privacy by design.</span>
+      </p>
+    </div>
+  </footer>
+
+</div>
 
 <script>
   function toggleLang() {
     const html = document.documentElement;
-    const current = html.getAttribute('data-lang');
-    html.setAttribute('data-lang', current === 'zh' ? 'en' : 'zh');
-    html.setAttribute('lang', current === 'zh' ? 'en' : 'zh-TW');
+    const current = html.getAttribute('data-lang') || 'zh';
+    const next = current === 'zh' ? 'en' : 'zh';
+    html.setAttribute('data-lang', next);
+    html.setAttribute('lang', next === 'zh' ? 'zh-TW' : 'en');
+    localStorage.setItem('md-forge-lang', next);
   }
+
+  (function initLang() {
+    const saved = localStorage.getItem('md-forge-lang');
+    if (saved === 'zh' || saved === 'en') {
+      document.documentElement.setAttribute('data-lang', saved);
+      document.documentElement.setAttribute('lang', saved === 'zh' ? 'zh-TW' : 'en');
+    }
+  })();
+
+  (function initReveal() {
+    const elements = document.querySelectorAll('.reveal');
+
+    if (!('IntersectionObserver' in window)) {
+      elements.forEach((el) => el.classList.add('visible'));
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    elements.forEach((el) => observer.observe(el));
+  })();
 </script>
 
 </body>
