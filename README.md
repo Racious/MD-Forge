@@ -95,6 +95,9 @@
 | 開啟檔案 | `Ctrl + O` |
 | 儲存 | `Ctrl + S` |
 | 另存新檔 | `Ctrl + Shift + S` |
+| 放大字級 | `Ctrl + +` 或 `Ctrl + 滾輪上` |
+| 縮小字級 | `Ctrl + -` 或 `Ctrl + 滾輪下` |
+| 重設字級 | `Ctrl + 0` |
 | 切換檢視模式 | 工具列按鈕 |
 
 ---
@@ -149,6 +152,10 @@ npm run package
 - 支援 Markdown 中嵌入 HTML（`<p>`、`<img>`、`<details>` 等）
 - 新增 DOMPurify 過濾層，移除危險標籤與事件屬性，確保安全渲染
 - 新增 GitHub Pages 展示頁（[racious.github.io/MD-Forge](https://racious.github.io/MD-Forge/)）
+- 編輯器支援縮放：`Ctrl + 滾輪` / `Ctrl + +` / `Ctrl + -`，`Ctrl + 0` 重設
+- TOC 點擊標題時編輯器同步平滑捲動至對應位置
+- 首頁 ICON 更換為應用程式圖示
+- 修正應用程式圖示在暗色背景下的透明角問題
 
 ### v0.2.1
 

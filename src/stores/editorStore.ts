@@ -26,6 +26,7 @@ export const useEditorStore = defineStore('editor', () => {
   const toc = ref<TocEntry[]>([]);
   const viewMode = ref<ViewMode>('split');
   const isRendering = ref(false);
+  const pendingScrollLine = ref<number | null>(null);
 
   // Tab state
   const tabs = ref<Tab[]>([]);
@@ -170,6 +171,14 @@ export const useEditorStore = defineStore('editor', () => {
     viewMode.value = mode;
   }
 
+  function scrollEditorToLine(line: number): void {
+    pendingScrollLine.value = line;
+  }
+
+  function clearPendingScroll(): void {
+    pendingScrollLine.value = null;
+  }
+
   function renderPreview(): void {
     const doc = currentDocument.value;
     const content = doc?.content ?? '';
@@ -197,6 +206,7 @@ export const useEditorStore = defineStore('editor', () => {
     toc,
     viewMode,
     isRendering,
+    pendingScrollLine,
     tabs,
     activeTabId,
     isDirty,
@@ -214,5 +224,7 @@ export const useEditorStore = defineStore('editor', () => {
     setViewMode,
     renderPreview,
     closeDocument,
+    scrollEditorToLine,
+    clearPendingScroll,
   };
 });

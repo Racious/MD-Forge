@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import logoUrl from '../../src-tauri/icons/icon.png';
 import { useFileStore } from '../stores/fileStore';
 import { useEditorStore } from '../stores/editorStore';
 import { useUnsavedGuard } from '../composables/useUnsavedGuard';
@@ -25,7 +26,7 @@ function handleNew() {
 <template>
   <div class="home-page">
     <div class="welcome-card">
-      <div class="logo">⚒</div>
+      <img :src="logoUrl" class="logo" alt="MD Forge" />
       <h1 class="title">MD Forge</h1>
       <p class="subtitle">Local Markdown Editor · Offline · Fast</p>
 
@@ -77,7 +78,7 @@ function handleNew() {
   gap: 12px;
   text-align: center;
 }
-.logo { font-size: 48px; }
+.logo { width: 80px; height: 80px; border-radius: 18px; }
 .title {
   font-size: 32px;
   font-weight: 700;

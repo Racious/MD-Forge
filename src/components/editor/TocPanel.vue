@@ -7,11 +7,14 @@ const editorStore = useEditorStore();
 
 const toc = computed<TocEntry[]>(() => editorStore.toc);
 
-function scrollTo(slug: string): void {
-  const el = document.getElementById(slug);
+function scrollTo(entry: TocEntry): void {
+  // 捲動預覽區至對應標題
+  const el = document.getElementById(entry.slug);
   if (el) {
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+  // 同步捲動編輯器至對應行
+  editorStore.scrollEditorToLine(entry.line);
 }
 </script>
 
@@ -25,7 +28,7 @@ function scrollTo(slug: string): void {
         class="toc-item"
         :class="`toc-h${entry.level}`"
         :href="`#${entry.slug}`"
-        @click.prevent="scrollTo(entry.slug)"
+        @click.prevent="scrollTo(entry)"
       >
         {{ entry.text }}
       </a>

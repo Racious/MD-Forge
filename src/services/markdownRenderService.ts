@@ -51,19 +51,20 @@ export interface TocEntry {
   level: number;
   text: string;
   slug: string;
+  line: number;
 }
 
 export function extractToc(content: string): TocEntry[] {
   const entries: TocEntry[] = [];
   const lines = content.split("\n");
-  for (const line of lines) {
+  lines.forEach((line, index) => {
     const match = line.match(/^(#{1,6})\s+(.+)/);
     if (match) {
       const level = match[1].length;
       const text = match[2].replace(/[*_`~]/g, "").trim();
-      entries.push({ level, text, slug: slugifyHeading(text) });
+      entries.push({ level, text, slug: slugifyHeading(text), line: index + 1 });
     }
-  }
+  });
   return entries;
 }
 

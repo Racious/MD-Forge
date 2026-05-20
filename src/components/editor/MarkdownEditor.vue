@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { EditorView, keymap, lineNumbers, drawSelection, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
@@ -105,8 +105,55 @@ watch(
   }
 );
 
-onMounted(initEditor);
-onUnmounted(() => view?.destroy());
+watch(
+  () => editorStore.pendingScrollLine,
+  async (line) => {
+    if (line === null || !view) return;
+    await nextTick();
+    const doc = view.state.doc;
+    if (line < 1 || line > doc.lines) return;
+    const pos = doc.line(line).from;
+    const block = view.lineBlockAt(pos);
+    view.scrollDOM.scrollTo({ top: block.top - 20, behavior: 'smooth' });
+    editorStore.clearPendingScroll();
+  }
+);
+
+function adjustFontSize(delta: number): void {
+  settingsStore.setFontSize(settingsStore.fontSize + delta);
+}
+
+function handleWheel(e: WheelEvent): void {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  adjustFontSize(e.deltaY < 0 ? 1 : -1);
+}
+
+function handleKeyDown(e: KeyboardEvent): void {
+  if (!e.ctrlKey) return;
+  if (e.key === '+' || e.key === '=') {
+    e.preventDefault();
+    adjustFontSize(1);
+  } else if (e.key === '-') {
+    e.preventDefault();
+    adjustFontSize(-1);
+  } else if (e.key === '0') {
+    e.preventDefault();
+    settingsStore.setFontSize(14);
+  }
+}
+
+onMounted(() => {
+  initEditor();
+  containerRef.value?.addEventListener('wheel', handleWheel, { passive: false });
+  window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+  view?.destroy();
+  containerRef.value?.removeEventListener('wheel', handleWheel);
+  window.removeEventListener('keydown', handleKeyDown);
+});
 </script>
 
 <template>
