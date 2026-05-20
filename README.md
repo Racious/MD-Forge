@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Racious/MD-Forge/main/src-tauri/icons/128x128.png" width="96" alt="MD Forge" />
+  <img src="https://raw.githubusercontent.com/Racious/MD-Forge/main/src-tauri/icons/128x128.png" width="96" alt="MD Forge" style="border-radius: 22px" />
 </p>
 
 <h1 align="center">MD Forge</h1>
