@@ -8,6 +8,7 @@ import { exportAsHtml } from '../../services/htmlExportService';
 import ViewModeSwitcher from './ViewModeSwitcher.vue';
 
 const version = __APP_VERSION__;
+const emit = defineEmits<{ openSettings: [] }>();
 
 const editorStore = useEditorStore();
 const fileStore = useFileStore();
@@ -48,6 +49,7 @@ async function handleExportHtml() {
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save (Ctrl+S)" @click="editorStore.saveDocument()">Save</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save As (Ctrl+Shift+S)" @click="editorStore.saveDocumentAs()">Save As</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Export HTML" @click="handleExportHtml">Export HTML</button>
+      <button class="toolbar-btn" title="Settings" @click="emit('openSettings')">Settings</button>
       <button class="toolbar-btn icon-btn" :title="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`" @click="toggleTheme">
         {{ theme === 'dark' ? '☀' : '☾' }}
       </button>

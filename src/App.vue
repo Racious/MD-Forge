@@ -7,6 +7,7 @@ import { useFileStore } from './stores/fileStore';
 import { useEditorStore } from './stores/editorStore';
 import { extractFileName } from './domain/file.types';
 import { readFile } from './services/fileSystemService';
+import { notifyPortableReleaseUpdate } from './services/releaseUpdateService';
 import AppShell from './components/layout/AppShell.vue';
 import HomePage from './pages/HomePage.vue';
 
@@ -65,6 +66,10 @@ onMounted(async () => {
       }
     }
   });
+
+  window.setTimeout(() => {
+    notifyPortableReleaseUpdate();
+  }, 5000);
 });
 </script>
 
