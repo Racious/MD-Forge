@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { check, type DownloadEvent } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
+import { confirm } from '@tauri-apps/plugin-dialog';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useTheme } from '../composables/useTheme';
 import { checkReleaseAndOpenDownload, openLatestReleasePage } from '../services/releaseUpdateService';
@@ -42,8 +43,14 @@ async function installAppUpdate() {
     return;
   }
 
-  const shouldContinue = window.confirm(
+  const shouldContinue = await confirm(
     'Automatic install is intended for installed versions of MD Forge. Portable users should use Check Downloads instead. Continue?',
+    {
+      title: 'Installed App Update',
+      kind: 'warning',
+      okLabel: 'Continue',
+      cancelLabel: 'Cancel',
+    },
   );
 
   if (!shouldContinue) {
@@ -63,7 +70,14 @@ async function installAppUpdate() {
       return;
     }
 
-    const shouldInstall = window.confirm(`MD Forge ${update.version} is available. Download and install it automatically?`);
+    const shouldInstall = await confirm(
+      `MD Forge ${update.version} is available. Download and install it automatically?`,
+      {
+        title: 'Install Update',
+        okLabel: 'Install',
+        cancelLabel: 'Cancel',
+      },
+    );
 
     if (!shouldInstall) {
       updateState.value = 'idle';

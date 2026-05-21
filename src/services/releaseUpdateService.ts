@@ -1,4 +1,5 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { confirm } from '@tauri-apps/plugin-dialog';
 
 const LATEST_RELEASE_API = 'https://api.github.com/repos/Racious/MD-Forge/releases/latest';
 const RELEASES_PAGE = 'https://github.com/Racious/MD-Forge/releases/latest';
@@ -74,8 +75,13 @@ export async function checkReleaseAndOpenDownload(currentVersion = __APP_VERSION
     return 'MD Forge is up to date.';
   }
 
-  const shouldOpen = window.confirm(
+  const shouldOpen = await confirm(
     `MD Forge ${update.version} is available. Open the GitHub release page to download it?`,
+    {
+      title: 'Update Available',
+      okLabel: 'Open Release',
+      cancelLabel: 'Later',
+    },
   );
 
   if (shouldOpen) {
@@ -98,8 +104,13 @@ export async function notifyPortableReleaseUpdate(): Promise<void> {
       return;
     }
 
-    const shouldOpen = window.confirm(
+    const shouldOpen = await confirm(
       `MD Forge ${update.version} is available. Open the GitHub release page to download it?`,
+      {
+        title: 'Update Available',
+        okLabel: 'Open Release',
+        cancelLabel: 'Later',
+      },
     );
 
     if (shouldOpen) {
