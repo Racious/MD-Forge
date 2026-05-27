@@ -2,6 +2,9 @@
 import { onMounted } from 'vue';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { useSettingsStore } from './stores/settingsStore';
 import { useFileStore } from './stores/fileStore';
 import { useEditorStore } from './stores/editorStore';
@@ -41,6 +44,7 @@ async function openFileByPath(path: string): Promise<void> {
 onMounted(async () => {
   settingsStore.init();
   fileStore.loadRecentFiles();
+  await editorStore.restoreSession();
 
   // 雙擊 / 命令列開檔
   await listen<[string, string]>('open-file', ({ payload }) => {
@@ -67,8 +71,30 @@ onMounted(async () => {
     }
   });
 
-  window.setTimeout(() => {
-    notifyPortableReleaseUpdate();
+  // 啟動更新檢查：安裝版優先走原生更新，失敗則改為引導攜帶版下載
+  window.setTimeout(async () => {
+    let handledByInstaller = false;
+    try {
+      const update = await check();
+      if (update) {
+        handledByInstaller = true;
+        const yes = await ask(
+          `MD Forge ${update.version} is available.\nDownload and install automatically?`,
+          { title: 'Update Available', okLabel: 'Install', cancelLabel: 'Later' }
+        );
+        if (yes) {
+          await update.downloadAndInstall();
+          await relaunch();
+        }
+      }
+    } catch {
+      // 靜默略過（網路錯誤等）
+    }
+
+    // 安裝版未處理時，走攜帶版引導下載
+    if (!handledByInstaller) {
+      await notifyPortableReleaseUpdate();
+    }
   }, 5000);
 });
 </script>

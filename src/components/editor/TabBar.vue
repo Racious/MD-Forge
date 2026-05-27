@@ -1,11 +1,35 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useEditorStore } from '../../stores/editorStore';
+import ConfirmDialog from '../common/ConfirmDialog.vue';
 
 const editorStore = useEditorStore();
+
+const pendingCloseId = ref<string | null>(null);
+
+function requestClose(id: string): void {
+  const tab = editorStore.tabs.find(t => t.id === id);
+  if (tab?.document.isDirty) {
+    pendingCloseId.value = id;
+  } else {
+    editorStore.closeTab(id);
+  }
+}
+
+function confirmClose(): void {
+  if (pendingCloseId.value) {
+    editorStore.closeTab(pendingCloseId.value);
+    pendingCloseId.value = null;
+  }
+}
+
+function cancelClose(): void {
+  pendingCloseId.value = null;
+}
 </script>
 
 <template>
-  <div v-if="editorStore.tabs.length > 0" class="tab-bar">
+  <div v-if="editorStore.tabs.length > 0" class="tab-bar" @dblclick.self="editorStore.newDocument()">
     <div
       v-for="tab in editorStore.tabs"
       :key="tab.id"
@@ -18,10 +42,17 @@ const editorStore = useEditorStore();
       <button
         class="tab-close"
         title="Close tab"
-        @click.stop="editorStore.closeTab(tab.id)"
+        @click.stop="requestClose(tab.id)"
       >×</button>
     </div>
   </div>
+
+  <ConfirmDialog
+    v-if="pendingCloseId"
+    :message="`&quot;${editorStore.tabs.find(t => t.id === pendingCloseId)?.document.fileName}&quot; has unsaved changes.\n\nDiscard changes and close?`"
+    @confirm="confirmClose"
+    @cancel="cancelClose"
+  />
 </template>
 
 <style scoped>

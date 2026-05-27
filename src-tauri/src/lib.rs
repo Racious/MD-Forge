@@ -77,10 +77,18 @@ async fn save_html_file(
 fn emit_open_file(handle: &tauri::AppHandle, path: String) {
     if let Ok(content) = std::fs::read_to_string(&path) {
         if let Some(window) = handle.get_webview_window("main") {
-            let _ = window.set_focus();
+            reveal_main_window(&window);
             let _ = window.emit("open-file", (path, content));
         }
     }
+}
+
+fn reveal_main_window(window: &tauri::WebviewWindow) {
+    let _ = window.show();
+    if window.is_minimized().unwrap_or(false) {
+        let _ = window.unminimize();
+    }
+    let _ = window.set_focus();
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -96,7 +104,7 @@ pub fn run() {
             } else {
                 // 沒有路徑，只聚焦已開啟的視窗
                 if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.set_focus();
+                    reveal_main_window(&window);
                 }
             }
         }))
@@ -115,7 +123,7 @@ pub fn run() {
                 if !window.is_maximized().unwrap_or(false) {
                     let _ = window.center();
                 }
-                let _ = window.show();
+                reveal_main_window(&window);
             }
             let args: Vec<String> = std::env::args().collect();
             if let Some(path) = args.get(1) {

@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { MarkdownDocument, Tab, ViewMode } from '../domain/markdown.types';
 import { renderMarkdown, extractToc, type TocEntry } from '../services/markdownRenderService';
-import { saveFile, saveFileAs } from '../services/fileSystemService';
+import { readFile, saveFile, saveFileAs } from '../services/fileSystemService';
 import { addRecentFile } from '../services/recentFileService';
 import { extractFileName } from '../domain/file.types';
 
@@ -18,6 +18,22 @@ function resolveImageSrcs(html: string, docPath: string): string {
 
 function generateId(): string {
   return Math.random().toString(36).slice(2, 9);
+}
+
+const SESSION_KEY = 'mdforge_session';
+
+interface SessionTab {
+  id: string;
+  fileName: string;
+  path: string | null;
+  content: string;
+  isDirty: boolean;
+  originalContent: string;
+}
+
+interface SessionData {
+  tabs: SessionTab[];
+  activeTabId: string | null;
 }
 
 export const useEditorStore = defineStore('editor', () => {
@@ -48,6 +64,7 @@ export const useEditorStore = defineStore('editor', () => {
     currentDocument.value.content = content;
     currentDocument.value.isDirty = content !== currentDocument.value.originalContent;
     renderPreview();
+    saveSession();
   }
 
   function openInTab(document: MarkdownDocument): void {
@@ -75,6 +92,7 @@ export const useEditorStore = defineStore('editor', () => {
         lastOpenedAt: new Date().toISOString(),
       });
     }
+    saveSession();
   }
 
   function openDocument(document: MarkdownDocument): void {
@@ -93,14 +111,6 @@ export const useEditorStore = defineStore('editor', () => {
     const tabIndex = tabs.value.findIndex(t => t.id === id);
     if (tabIndex === -1) return;
 
-    const tab = tabs.value[tabIndex];
-    if (tab.document.isDirty) {
-      const ok = window.confirm(
-        `"${tab.document.fileName}" has unsaved changes.\n\nDiscard changes and close?`
-      );
-      if (!ok) return;
-    }
-
     tabs.value.splice(tabIndex, 1);
 
     if (activeTabId.value === id) {
@@ -108,13 +118,13 @@ export const useEditorStore = defineStore('editor', () => {
         const newIndex = Math.min(tabIndex, tabs.value.length - 1);
         switchTab(tabs.value[newIndex].id);
       } else {
-        // 全部關閉，回首頁
         activeTabId.value = null;
         currentDocument.value = null;
         renderedHtml.value = '';
         toc.value = [];
       }
     }
+    saveSession();
   }
 
   function newDocument(): void {
@@ -132,6 +142,7 @@ export const useEditorStore = defineStore('editor', () => {
     currentDocument.value = tab.document;
     renderedHtml.value = '';
     toc.value = [];
+    saveSession();
   }
 
   async function saveDocument(): Promise<void> {
@@ -143,6 +154,7 @@ export const useEditorStore = defineStore('editor', () => {
       doc.originalContent = doc.content;
       doc.isDirty = false;
       doc.lastSavedAt = new Date().toISOString();
+      saveSession();
     } else {
       await saveDocumentAs();
     }
@@ -164,11 +176,77 @@ export const useEditorStore = defineStore('editor', () => {
         fileName: doc.fileName,
         lastOpenedAt: new Date().toISOString(),
       });
+      saveSession();
     }
   }
 
   function setViewMode(mode: ViewMode): void {
     viewMode.value = mode;
+  }
+
+  function saveSession(): void {
+    const session: SessionData = {
+      tabs: tabs.value.map(t => ({
+        id: t.id,
+        fileName: t.document.fileName,
+        path: t.document.path,
+        content: t.document.content,
+        isDirty: t.document.isDirty,
+        originalContent: t.document.originalContent,
+      })),
+      activeTabId: activeTabId.value,
+    };
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    } catch {
+      // localStorage 滿了就略過
+    }
+  }
+
+  async function restoreSession(): Promise<boolean> {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return false;
+      const session = JSON.parse(raw) as SessionData;
+      if (!session.tabs?.length) return false;
+
+      for (const tabData of session.tabs) {
+        let content = tabData.content;
+        let originalContent = tabData.originalContent;
+
+        if (tabData.path) {
+          try {
+            const diskContent = await readFile(tabData.path);
+            originalContent = diskContent;
+            content = tabData.isDirty ? tabData.content : diskContent;
+          } catch {
+            // 檔案已移除，用 session 內容
+          }
+        }
+
+        const doc: MarkdownDocument = {
+          path: tabData.path,
+          fileName: tabData.fileName,
+          content,
+          originalContent,
+          isDirty: tabData.isDirty,
+        };
+
+        const tab: Tab = { id: tabData.id, document: doc };
+        tabs.value.push(tab);
+      }
+
+      const activeId = session.activeTabId ?? session.tabs[0]?.id ?? null;
+      if (activeId && tabs.value.find(t => t.id === activeId)) {
+        switchTab(activeId);
+      } else if (tabs.value.length > 0) {
+        switchTab(tabs.value[0].id);
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   function scrollEditorToLine(line: number): void {
@@ -226,5 +304,7 @@ export const useEditorStore = defineStore('editor', () => {
     closeDocument,
     scrollEditorToLine,
     clearPendingScroll,
+    saveSession,
+    restoreSession,
   };
 });
