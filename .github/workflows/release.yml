@@ -59,10 +59,14 @@ jobs:
           prerelease: false
           updaterJsonPreferNsis: true
 
+      - name: Rename portable exe
+        shell: bash
+        run: cp "src-tauri/target/release/tauri-app.exe" "src-tauri/target/release/MD.Forge.exe"
+
       - name: Upload portable exe
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: src-tauri/target/release/MD Forge.exe
+          files: src-tauri/target/release/MD.Forge.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
