@@ -18,7 +18,7 @@ const downloadTable = `## 下載（Windows）
 |------|------|------|
 | 安裝版（NSIS，推薦） | 含捷徑與解除安裝，支援應用程式內自動更新 | \`MD.Forge_${version}_x64-setup.exe\` |
 | 安裝版（MSI） | 適合靜默安裝或企業部署 | \`MD.Forge_${version}_x64_en-US.msi\` |
-| 免安裝版 | 單一 .exe，無需安裝，直接執行 | `MD.Forge.exe` |
+| 免安裝版 | 單一 .exe，無需安裝，直接執行 | \`MD.Forge.exe\` |
 
 > ⚠️ 首次執行可能出現 Windows SmartScreen 警告（未簽署憑證），點「仍要執行」即可繼續。
 
