@@ -6,6 +6,7 @@ import Sidebar from './Sidebar.vue';
 import FileStatusBar from '../files/FileStatusBar.vue';
 import MarkdownEditor from '../editor/MarkdownEditor.vue';
 import MarkdownPreview from '../editor/MarkdownPreview.vue';
+import JsonTreeView from '../editor/JsonTreeView.vue';
 import SettingsPage from '../../pages/SettingsPage.vue';
 import { useEditorStore } from '../../stores/editorStore';
 import { useKeyboardShortcuts } from '../../composables/useKeyboardShortcuts';
@@ -40,20 +41,21 @@ const showSidebar = computed(() => !hasDoc.value || editorStore.isMarkdownDocume
         <template v-else-if="hasDoc">
           <div
             class="pane editor-pane"
-            :class="{ 'pane-full': editorStore.viewMode === 'edit' || isJsonDocument, 'pane-half': editorStore.viewMode === 'split' && !isJsonDocument }"
-            v-show="showEditor || isJsonDocument"
+            :class="{ 'pane-full': editorStore.viewMode === 'edit', 'pane-half': editorStore.viewMode === 'split' }"
+            v-show="showEditor"
           >
             <MarkdownEditor />
           </div>
 
-          <div class="pane-divider" v-if="editorStore.viewMode === 'split' && !isJsonDocument" />
+          <div class="pane-divider" v-if="editorStore.viewMode === 'split'" />
 
           <div
             class="pane preview-pane"
             :class="{ 'pane-full': editorStore.viewMode === 'preview', 'pane-half': editorStore.viewMode === 'split' }"
-            v-show="showPreview && !isJsonDocument"
+            v-show="showPreview"
           >
-            <MarkdownPreview />
+            <JsonTreeView v-if="isJsonDocument" />
+            <MarkdownPreview v-else />
           </div>
         </template>
 

@@ -45,7 +45,7 @@ async function handleExportHtml() {
     </div>
 
     <div class="toolbar-right">
-      <ViewModeSwitcher v-if="editorStore.isMarkdownDocument" />
+      <ViewModeSwitcher v-if="hasDoc" />
       <button class="toolbar-btn" title="Open file (Ctrl+O)" @click="handleOpen">Open</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save (Ctrl+S)" @click="editorStore.saveDocument()">Save</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save As (Ctrl+Shift+S)" @click="editorStore.saveDocumentAs()">Save As</button>

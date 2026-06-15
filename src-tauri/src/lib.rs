@@ -6,7 +6,10 @@ async fn open_supported_file(app: tauri::AppHandle) -> Result<Option<(String, St
     let file = app
         .dialog()
         .file()
-        .add_filter("Supported documents", &["md", "markdown", "mdx", "json"])
+        .add_filter("All supported", &["md", "markdown", "mdx", "json"])
+        .add_filter("Markdown", &["md", "markdown", "mdx"])
+        .add_filter("JSON", &["json"])
+        .add_filter("All files", &["*"])
         .blocking_pick_file();
 
     match file {
@@ -37,10 +40,19 @@ async fn save_file_as(
     default_name: String,
     extension: String,
 ) -> Result<Option<String>, String> {
+    // 依當前文件類型，預設選取對應的副檔名過濾器（置於首位即為預設）
+    let (type_label, type_exts): (&str, Vec<&str>) = if extension == "json" {
+        ("JSON", vec!["json"])
+    } else {
+        ("Markdown", vec!["md", "markdown", "mdx"])
+    };
+
     let file = app
         .dialog()
         .file()
-        .add_filter("Document", &[&extension])
+        .add_filter(type_label, &type_exts)
+        .add_filter("All supported", &["md", "markdown", "mdx", "json"])
+        .add_filter("All files", &["*"])
         .set_file_name(&default_name)
         .blocking_save_file();
 
