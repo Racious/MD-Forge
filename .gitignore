@@ -41,3 +41,4 @@ tmp/
 
 # Claude Code 本地 worktree 中繼資料
 .claude/worktrees/
+# 注意：.claude/skills/ 為共享技能，請勿忽略
