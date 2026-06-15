@@ -25,3 +25,19 @@ src-tauri/updater-keys/
 *.njsproj
 *.sln
 *.sw?
+
+# ── AMAGI Core 工作目錄 ──
+# 忽略「過程與本地狀態」，保留「技能與記憶」共享
+.amagi/state/
+.amagi/history/
+.amagi/artifacts/
+.amagi/pending/
+.amagi/workflow-state.md
+.amagi/config.json
+.amagi/*.bak
+
+# 暫存與比對產物
+tmp/
+
+# Claude Code 本地 worktree 中繼資料
+.claude/worktrees/
