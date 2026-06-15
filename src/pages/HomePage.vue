@@ -3,6 +3,7 @@ import logoUrl from '../../src-tauri/icons/icon.png';
 import { useFileStore } from '../stores/fileStore';
 import { useEditorStore } from '../stores/editorStore';
 import { useUnsavedGuard } from '../composables/useUnsavedGuard';
+import { getDocumentType } from '../domain/file.types';
 
 const fileStore = useFileStore();
 const editorStore = useEditorStore();
@@ -28,11 +29,11 @@ function handleNew() {
     <div class="welcome-card">
       <img :src="logoUrl" class="logo" alt="MD Forge" />
       <h1 class="title">MD Forge</h1>
-      <p class="subtitle">Local Markdown Editor · Offline · Fast</p>
+      <p class="subtitle">Local Markdown & JSON Editor · Offline · Fast</p>
 
       <div class="actions">
-        <button class="btn-primary" @click="handleOpen">Open Markdown File</button>
-        <button class="btn-secondary" @click="handleNew">New Document</button>
+        <button class="btn-primary" @click="handleOpen">Open Document</button>
+        <button class="btn-secondary" @click="handleNew">New Markdown</button>
       </div>
 
       <div class="build-info">
@@ -52,7 +53,9 @@ function handleNew() {
           :title="file.path"
           @click="fileStore.openFileByPath(file.path)"
         >
-          <span class="card-icon">📄</span>
+          <span class="card-icon" :class="`card-icon-${getDocumentType(file.path)}`">
+            {{ getDocumentType(file.path) === 'json' ? '{}' : 'M' }}
+          </span>
           <span class="card-name">{{ file.fileName }}</span>
           <span class="card-path">{{ file.path }}</span>
         </li>
@@ -132,7 +135,12 @@ function handleNew() {
   overflow: hidden;
 }
 .recent-card:hover { background: var(--color-surface-hover); border-color: var(--color-accent); }
-.card-icon { font-size: 20px; }
+.card-icon {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.card-icon-json { color: var(--color-warning); }
 .card-name { font-size: 13px; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-path { font-size: 11px; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>

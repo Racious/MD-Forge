@@ -4,6 +4,7 @@ import { EditorView, keymap, lineNumbers, drawSelection, highlightActiveLine } f
 import { EditorState, Compartment } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
+import { json } from '@codemirror/lang-json';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { syntaxHighlighting, defaultHighlightStyle, indentOnInput } from '@codemirror/language';
 import { useEditorStore } from '../../stores/editorStore';
@@ -18,6 +19,7 @@ let updating = false;
 
 const themeCompartment = new Compartment();
 const fontCompartment = new Compartment();
+const languageCompartment = new Compartment();
 
 function buildThemeExtension(dark: boolean) {
   return dark ? oneDark : [];
@@ -33,6 +35,10 @@ function buildFontExtension(size: number) {
   });
 }
 
+function buildLanguageExtension() {
+  return editorStore.documentType === 'json' ? json() : markdown();
+}
+
 function buildStaticExtensions() {
   return [
     lineNumbers(),
@@ -41,7 +47,6 @@ function buildStaticExtensions() {
     indentOnInput(),
     highlightActiveLine(),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-    markdown(),
     EditorView.lineWrapping,
     keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
     EditorView.updateListener.of((update) => {
@@ -61,6 +66,7 @@ function initEditor(): void {
       ...buildStaticExtensions(),
       themeCompartment.of(buildThemeExtension(settingsStore.theme === 'dark')),
       fontCompartment.of(buildFontExtension(settingsStore.fontSize)),
+      languageCompartment.of(buildLanguageExtension()),
     ],
   });
 
@@ -82,6 +88,16 @@ watch(
   () => editorStore.currentDocument?.content,
   (val) => {
     if (val !== undefined) syncContent(val);
+  }
+);
+
+watch(
+  () => editorStore.documentType,
+  () => {
+    if (!view) return;
+    view.dispatch({
+      effects: languageCompartment.reconfigure(buildLanguageExtension()),
+    });
   }
 );
 

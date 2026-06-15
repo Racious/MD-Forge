@@ -4,9 +4,12 @@ export type ThemeMode = 'light' | 'dark';
 
 export type SupportedMarkdownExtension = 'md' | 'markdown' | 'mdx';
 
+export type DocumentType = 'markdown' | 'json';
+
 export interface MarkdownDocument {
   path: string | null;
   fileName: string;
+  type: DocumentType;
   content: string;
   originalContent: string;
   isDirty: boolean;

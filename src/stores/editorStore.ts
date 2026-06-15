@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import type { MarkdownDocument, Tab, ViewMode } from '../domain/markdown.types';
+import type { DocumentType, MarkdownDocument, Tab, ViewMode } from '../domain/markdown.types';
 import { renderMarkdown, extractToc, type TocEntry } from '../services/markdownRenderService';
 import { readFile, saveFile, saveFileAs } from '../services/fileSystemService';
 import { addRecentFile } from '../services/recentFileService';
-import { extractFileName } from '../domain/file.types';
+import { extractFileName, getDocumentType } from '../domain/file.types';
 
 function resolveImageSrcs(html: string, docPath: string): string {
   const dir = docPath.replace(/[\\/][^\\/]+$/, '');
@@ -29,6 +29,7 @@ interface SessionTab {
   content: string;
   isDirty: boolean;
   originalContent: string;
+  type?: DocumentType;
 }
 
 interface SessionData {
@@ -50,6 +51,8 @@ export const useEditorStore = defineStore('editor', () => {
 
   const isDirty = computed(() => currentDocument.value?.isDirty ?? false);
   const fileName = computed(() => currentDocument.value?.fileName ?? '');
+  const documentType = computed<DocumentType>(() => currentDocument.value?.type ?? 'markdown');
+  const isMarkdownDocument = computed(() => documentType.value === 'markdown');
   const wordCount = computed(() => {
     const text = currentDocument.value?.content ?? '';
     return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -131,6 +134,7 @@ export const useEditorStore = defineStore('editor', () => {
     const doc: MarkdownDocument = {
       path: null,
       fileName: 'untitled.md',
+      type: 'markdown',
       content: '',
       originalContent: '',
       isDirty: false,
@@ -164,10 +168,11 @@ export const useEditorStore = defineStore('editor', () => {
     const doc = currentDocument.value;
     if (!doc) return;
 
-    const path = await saveFileAs(doc.content);
+    const path = await saveFileAs(doc.content, doc.type);
     if (path) {
       doc.path = path;
       doc.fileName = extractFileName(path);
+      doc.type = getDocumentType(path);
       doc.originalContent = doc.content;
       doc.isDirty = false;
       doc.lastSavedAt = new Date().toISOString();
@@ -193,6 +198,7 @@ export const useEditorStore = defineStore('editor', () => {
         content: t.document.content,
         isDirty: t.document.isDirty,
         originalContent: t.document.originalContent,
+        type: t.document.type,
       })),
       activeTabId: activeTabId.value,
     };
@@ -227,6 +233,7 @@ export const useEditorStore = defineStore('editor', () => {
         const doc: MarkdownDocument = {
           path: tabData.path,
           fileName: tabData.fileName,
+          type: tabData.type ?? getDocumentType(tabData.path ?? tabData.fileName),
           content,
           originalContent,
           isDirty: tabData.isDirty,
@@ -259,6 +266,12 @@ export const useEditorStore = defineStore('editor', () => {
 
   function renderPreview(): void {
     const doc = currentDocument.value;
+    if (doc?.type === 'json') {
+      renderedHtml.value = '';
+      toc.value = [];
+      isRendering.value = false;
+      return;
+    }
     const content = doc?.content ?? '';
     isRendering.value = true;
     let html = renderMarkdown(content);
@@ -289,6 +302,8 @@ export const useEditorStore = defineStore('editor', () => {
     activeTabId,
     isDirty,
     fileName,
+    documentType,
+    isMarkdownDocument,
     wordCount,
     lineCount,
     setContent,

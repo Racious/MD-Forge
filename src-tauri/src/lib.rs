@@ -2,11 +2,11 @@ use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
-async fn open_markdown_file(app: tauri::AppHandle) -> Result<Option<(String, String)>, String> {
+async fn open_supported_file(app: tauri::AppHandle) -> Result<Option<(String, String)>, String> {
     let file = app
         .dialog()
         .file()
-        .add_filter("Markdown", &["md", "markdown", "mdx"])
+        .add_filter("Supported documents", &["md", "markdown", "mdx", "json"])
         .blocking_pick_file();
 
     match file {
@@ -31,12 +31,17 @@ async fn save_file(path: String, content: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn save_file_as(app: tauri::AppHandle, content: String) -> Result<Option<String>, String> {
+async fn save_file_as(
+    app: tauri::AppHandle,
+    content: String,
+    default_name: String,
+    extension: String,
+) -> Result<Option<String>, String> {
     let file = app
         .dialog()
         .file()
-        .add_filter("Markdown", &["md", "markdown"])
-        .set_file_name("untitled.md")
+        .add_filter("Document", &[&extension])
+        .set_file_name(&default_name)
         .blocking_save_file();
 
     match file {
@@ -112,7 +117,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
-            open_markdown_file,
+            open_supported_file,
             read_file,
             save_file,
             save_file_as,

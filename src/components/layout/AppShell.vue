@@ -17,6 +17,8 @@ const showSettings = ref(false);
 const showEditor = computed(() => editorStore.viewMode !== 'preview');
 const showPreview = computed(() => editorStore.viewMode !== 'edit');
 const hasDoc = computed(() => !!editorStore.currentDocument);
+const isJsonDocument = computed(() => editorStore.documentType === 'json');
+const showSidebar = computed(() => !hasDoc.value || editorStore.isMarkdownDocument);
 </script>
 
 <template>
@@ -25,7 +27,7 @@ const hasDoc = computed(() => !!editorStore.currentDocument);
     <TabBar />
 
     <div class="content-area">
-      <Sidebar v-if="!showSettings" />
+      <Sidebar v-if="!showSettings && showSidebar" />
 
       <main class="editor-area">
         <div v-if="showSettings" class="settings-area">
@@ -38,18 +40,18 @@ const hasDoc = computed(() => !!editorStore.currentDocument);
         <template v-else-if="hasDoc">
           <div
             class="pane editor-pane"
-            :class="{ 'pane-full': editorStore.viewMode === 'edit', 'pane-half': editorStore.viewMode === 'split' }"
-            v-show="showEditor"
+            :class="{ 'pane-full': editorStore.viewMode === 'edit' || isJsonDocument, 'pane-half': editorStore.viewMode === 'split' && !isJsonDocument }"
+            v-show="showEditor || isJsonDocument"
           >
             <MarkdownEditor />
           </div>
 
-          <div class="pane-divider" v-if="editorStore.viewMode === 'split'" />
+          <div class="pane-divider" v-if="editorStore.viewMode === 'split' && !isJsonDocument" />
 
           <div
             class="pane preview-pane"
             :class="{ 'pane-full': editorStore.viewMode === 'preview', 'pane-half': editorStore.viewMode === 'split' }"
-            v-show="showPreview"
+            v-show="showPreview && !isJsonDocument"
           >
             <MarkdownPreview />
           </div>

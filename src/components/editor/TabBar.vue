@@ -37,6 +37,7 @@ function cancelClose(): void {
       :class="{ 'tab-active': tab.id === editorStore.activeTabId }"
       @click="editorStore.switchTab(tab.id)"
     >
+      <span class="tab-type" :class="`tab-type-${tab.document.type}`">{{ tab.document.type === 'json' ? '{}' : 'M' }}</span>
       <span class="tab-name">{{ tab.document.fileName }}</span>
       <span v-if="tab.document.isDirty" class="tab-dirty" title="Unsaved changes">●</span>
       <button
@@ -100,6 +101,15 @@ function cancelClose(): void {
   white-space: nowrap;
   flex: 1;
   min-width: 0;
+}
+.tab-type {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.tab-type-json {
+  color: var(--color-warning);
 }
 .tab-dirty {
   color: var(--color-warning);

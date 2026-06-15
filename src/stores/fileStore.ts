@@ -7,7 +7,7 @@ import {
   removeRecentFile as persistRemove,
   clearRecentFiles as persistClear,
 } from '../services/recentFileService';
-import { openMarkdownFile } from '../services/fileSystemService';
+import { openSupportedFile } from '../services/fileSystemService';
 import { useEditorStore } from './editorStore';
 
 export const useFileStore = defineStore('file', () => {
@@ -34,7 +34,7 @@ export const useFileStore = defineStore('file', () => {
 
   async function openFile(): Promise<void> {
     const editorStore = useEditorStore();
-    const document = await openMarkdownFile();
+    const document = await openSupportedFile();
     if (document) {
       editorStore.openInTab(document);
       loadRecentFiles();
@@ -44,12 +44,13 @@ export const useFileStore = defineStore('file', () => {
   async function openFileByPath(path: string): Promise<void> {
     const editorStore = useEditorStore();
     const { readFile } = await import('../services/fileSystemService');
-    const { extractFileName } = await import('../domain/file.types');
+    const { extractFileName, getDocumentType } = await import('../domain/file.types');
     try {
       const content = await readFile(path);
       editorStore.openInTab({
         path,
         fileName: extractFileName(path),
+        type: getDocumentType(path),
         content,
         originalContent: content,
         isDirty: false,

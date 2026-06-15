@@ -17,6 +17,7 @@ const { theme, toggleTheme } = useTheme();
 
 const hasDoc = computed(() => !!editorStore.currentDocument);
 const isDirty = computed(() => editorStore.isDirty);
+const canExportHtml = computed(() => hasDoc.value && editorStore.isMarkdownDocument);
 
 async function handleOpen() {
   await guardedOpenFile(() => fileStore.openFile());
@@ -44,11 +45,11 @@ async function handleExportHtml() {
     </div>
 
     <div class="toolbar-right">
-      <ViewModeSwitcher />
+      <ViewModeSwitcher v-if="editorStore.isMarkdownDocument" />
       <button class="toolbar-btn" title="Open file (Ctrl+O)" @click="handleOpen">Open</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save (Ctrl+S)" @click="editorStore.saveDocument()">Save</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save As (Ctrl+Shift+S)" @click="editorStore.saveDocumentAs()">Save As</button>
-      <button class="toolbar-btn" :disabled="!hasDoc" title="Export HTML" @click="handleExportHtml">Export HTML</button>
+      <button class="toolbar-btn" :disabled="!canExportHtml" title="Export HTML" @click="handleExportHtml">Export HTML</button>
       <button class="toolbar-btn" title="Settings" @click="emit('openSettings')">Settings</button>
       <button class="toolbar-btn icon-btn" :title="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`" @click="toggleTheme">
         {{ theme === 'dark' ? '☀' : '☾' }}
