@@ -24,6 +24,10 @@ export function useKeyboardShortcuts() {
         e.preventDefault();
         fileStore.openFile();
         break;
+      case 'p':
+        // 抑制 WebView 預設列印（Ctrl+P / Ctrl+Shift+P）；Ctrl+Shift+P 預留給未來命令面板
+        e.preventDefault();
+        break;
     }
   }
 

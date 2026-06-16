@@ -99,11 +99,19 @@ function handleKeydown(e: KeyboardEvent): void {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', handleKeydown));
+function handleCloseActiveTab(): void {
+  if (editorStore.activeTabId) requestClose(editorStore.activeTabId);
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+  window.addEventListener('mdforge:close-active-tab', handleCloseActiveTab);
+});
 
 onBeforeUnmount(() => {
   resizeObserver?.disconnect();
   window.removeEventListener('keydown', handleKeydown);
+  window.removeEventListener('mdforge:close-active-tab', handleCloseActiveTab);
 });
 
 function requestClose(id: string): void {

@@ -125,8 +125,6 @@ async function installAppUpdate() {
 
 <template>
   <div class="settings-page">
-    <h2>Settings</h2>
-
     <div class="setting-row">
       <label>Theme</label>
       <button class="btn" @click="toggleTheme">{{ theme === 'dark' ? 'Dark' : 'Light' }}</button>
@@ -177,13 +175,7 @@ async function installAppUpdate() {
 
 <style scoped>
 .settings-page {
-  padding: 32px;
-  max-width: 560px;
-}
-
-h2 {
-  margin: 0 0 24px;
-  color: var(--color-text);
+  padding: 16px 20px;
 }
 
 .setting-row {
@@ -248,17 +240,19 @@ h2 {
 
 .update-row {
   align-items: flex-start;
-  gap: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .update-actions {
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .progress-track {
-  width: 220px;
+  width: 100%;
+  max-width: 220px;
   height: 6px;
   overflow: hidden;
   border-radius: 999px;
