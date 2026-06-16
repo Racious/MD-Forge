@@ -13,10 +13,14 @@ import { readFile } from './services/fileSystemService';
 import { notifyPortableReleaseUpdate } from './services/releaseUpdateService';
 import AppShell from './components/layout/AppShell.vue';
 import HomePage from './pages/HomePage.vue';
+import { useToast } from './composables/useToast';
 
 const settingsStore = useSettingsStore();
 const fileStore = useFileStore();
 const editorStore = useEditorStore();
+
+// 全域 toast 反饋（複製等動作）；解構成頂層變數讓模板自動解包 ref
+const { message: toastMessage } = useToast();
 
 async function openFileByPath(path: string): Promise<void> {
   try {
@@ -102,4 +106,43 @@ onMounted(async () => {
       <HomePage />
     </template>
   </AppShell>
+
+  <!-- 全域 toast 反饋 -->
+  <Transition name="toast">
+    <div v-if="toastMessage" class="toast">{{ toastMessage }}</div>
+  </Transition>
 </template>
+
+<style scoped>
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 48px;
+  transform: translateX(-50%);
+  max-width: 360px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-accent);
+  color: var(--color-text);
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 100;
+  pointer-events: none;
+}
+.toast::before {
+  content: '✓ ';
+  color: var(--color-success);
+  font-weight: 700;
+}
+.toast-enter-active,
+.toast-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(6px) scale(0.96);
+}
+</style>

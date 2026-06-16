@@ -144,6 +144,11 @@ async function installAppUpdate() {
       <button class="btn" @click="settings.toggleWordWrap()">{{ settings.wordWrap ? 'On' : 'Off' }}</button>
     </div>
 
+    <div class="setting-row">
+      <label>JSON 存檔時自動格式化</label>
+      <button class="btn" @click="settings.toggleFormatJsonOnSave()">{{ settings.formatJsonOnSave ? 'On' : 'Off' }}</button>
+    </div>
+
     <div class="setting-row update-row">
       <div class="setting-copy">
         <label>App Update</label>

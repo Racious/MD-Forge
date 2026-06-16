@@ -10,6 +10,7 @@ interface SettingsData {
   autoSave: boolean;
   wordWrap: boolean;
   fontSize: number;
+  formatJsonOnSave: boolean;
 }
 
 const DEFAULTS: SettingsData = {
@@ -18,6 +19,7 @@ const DEFAULTS: SettingsData = {
   autoSave: false,
   wordWrap: true,
   fontSize: 14,
+  formatJsonOnSave: true,
 };
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -26,6 +28,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const autoSave = ref(DEFAULTS.autoSave);
   const wordWrap = ref(DEFAULTS.wordWrap);
   const fontSize = ref(DEFAULTS.fontSize);
+  const formatJsonOnSave = ref(DEFAULTS.formatJsonOnSave);
 
   function loadSettings(): void {
     try {
@@ -37,6 +40,7 @@ export const useSettingsStore = defineStore('settings', () => {
       autoSave.value = data.autoSave ?? DEFAULTS.autoSave;
       wordWrap.value = data.wordWrap ?? DEFAULTS.wordWrap;
       fontSize.value = data.fontSize ?? DEFAULTS.fontSize;
+      formatJsonOnSave.value = data.formatJsonOnSave ?? DEFAULTS.formatJsonOnSave;
     } catch {
       // ignore malformed data
     }
@@ -49,6 +53,7 @@ export const useSettingsStore = defineStore('settings', () => {
       autoSave: autoSave.value,
       wordWrap: wordWrap.value,
       fontSize: fontSize.value,
+      formatJsonOnSave: formatJsonOnSave.value,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
@@ -69,6 +74,11 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings();
   }
 
+  function toggleFormatJsonOnSave(): void {
+    formatJsonOnSave.value = !formatJsonOnSave.value;
+    saveSettings();
+  }
+
   function applyTheme(value: ThemeMode): void {
     document.documentElement.setAttribute('data-theme', value);
   }
@@ -84,11 +94,13 @@ export const useSettingsStore = defineStore('settings', () => {
     autoSave,
     wordWrap,
     fontSize,
+    formatJsonOnSave,
     loadSettings,
     saveSettings,
     setTheme,
     setFontSize,
     toggleWordWrap,
+    toggleFormatJsonOnSave,
     init,
   };
 });

@@ -7,6 +7,13 @@ export function useKeyboardShortcuts() {
   const fileStore = useFileStore();
 
   function handleKeydown(e: KeyboardEvent): void {
+    // 格式化 JSON：Shift + Alt + F（非 Ctrl 系，需先處理）
+    if (e.altKey && e.shiftKey && e.code === 'KeyF') {
+      e.preventDefault();
+      editorStore.formatJsonDocument();
+      return;
+    }
+
     const ctrl = e.ctrlKey || e.metaKey;
     if (!ctrl) return;
 

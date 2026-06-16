@@ -6,6 +6,7 @@ import { renderMarkdown, extractToc, type TocEntry } from '../services/markdownR
 import { readFile, saveFile, saveFileAs } from '../services/fileSystemService';
 import { addRecentFile } from '../services/recentFileService';
 import { extractFileName, getDocumentType } from '../domain/file.types';
+import { useSettingsStore } from './settingsStore';
 
 function resolveImageSrcs(html: string, docPath: string): string {
   const dir = docPath.replace(/[\\/][^\\/]+$/, '');
@@ -68,6 +69,34 @@ export const useEditorStore = defineStore('editor', () => {
     currentDocument.value.isDirty = content !== currentDocument.value.originalContent;
     renderPreview();
     saveSession();
+  }
+
+  // 格式化目前 JSON 文件；成功回傳 true，JSON 不合法回傳 false（不更動內容）
+  function formatJsonDocument(): boolean {
+    const doc = currentDocument.value;
+    if (!doc || doc.type !== 'json') return false;
+    try {
+      const formatted = JSON.stringify(JSON.parse(doc.content), null, 2);
+      if (formatted !== doc.content) setContent(formatted);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // 存檔前：依設定自動格式化 JSON（不合法則原樣存檔）
+  function maybeFormatOnSave(doc: MarkdownDocument): void {
+    const settings = useSettingsStore();
+    if (!settings.formatJsonOnSave || doc.type !== 'json') return;
+    try {
+      const formatted = JSON.stringify(JSON.parse(doc.content), null, 2);
+      if (formatted !== doc.content) {
+        doc.content = formatted;
+        renderPreview();
+      }
+    } catch {
+      // JSON 不合法，保留原內容存檔
+    }
   }
 
   function openInTab(document: MarkdownDocument): void {
@@ -153,6 +182,8 @@ export const useEditorStore = defineStore('editor', () => {
     const doc = currentDocument.value;
     if (!doc) return;
 
+    maybeFormatOnSave(doc);
+
     if (doc.path) {
       await saveFile(doc.path, doc.content);
       doc.originalContent = doc.content;
@@ -167,6 +198,8 @@ export const useEditorStore = defineStore('editor', () => {
   async function saveDocumentAs(): Promise<void> {
     const doc = currentDocument.value;
     if (!doc) return;
+
+    maybeFormatOnSave(doc);
 
     const path = await saveFileAs(doc.content, doc.type);
     if (path) {
@@ -307,6 +340,7 @@ export const useEditorStore = defineStore('editor', () => {
     wordCount,
     lineCount,
     setContent,
+    formatJsonDocument,
     openDocument,
     openInTab,
     switchTab,

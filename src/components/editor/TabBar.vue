@@ -180,6 +180,12 @@ function cancelClose(): void {
       :disabled="!canScrollRight"
       @click="scrollByStep(1)"
     >›</button>
+
+    <button
+      class="tab-new-btn"
+      title="New tab (double-click empty area also works)"
+      @click="editorStore.newDocument()"
+    >+</button>
   </div>
 
   <ConfirmDialog
@@ -233,6 +239,25 @@ function cancelClose(): void {
 .tab-scroll-btn:disabled {
   opacity: 0.3;
   cursor: default;
+}
+.tab-new-btn {
+  flex: 0 0 auto;
+  width: 30px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1;
+  padding: 0;
+  opacity: 0.6;
+  transition: opacity 0.12s, background 0.12s, color 0.12s;
+}
+.tab-new-btn:hover {
+  opacity: 1;
+  background: var(--color-surface-hover);
+  color: var(--color-text);
 }
 .tab {
   display: flex;

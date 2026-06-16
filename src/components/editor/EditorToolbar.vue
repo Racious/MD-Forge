@@ -19,6 +19,7 @@ const { theme, toggleTheme } = useTheme();
 const hasDoc = computed(() => !!editorStore.currentDocument);
 const isDirty = computed(() => editorStore.isDirty);
 const canExportHtml = computed(() => hasDoc.value && editorStore.isMarkdownDocument);
+const isJsonDoc = computed(() => editorStore.documentType === 'json');
 
 async function handleOpen() {
   await guardedOpenFile(() => fileStore.openFile());
@@ -50,6 +51,7 @@ async function handleExportHtml() {
       <button class="toolbar-btn" title="Open file (Ctrl+O)" @click="handleOpen">Open</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save (Ctrl+S)" @click="editorStore.saveDocument()">Save</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save As (Ctrl+Shift+S)" @click="editorStore.saveDocumentAs()">Save As</button>
+      <button v-if="isJsonDoc" class="toolbar-btn" title="Format JSON (Shift+Alt+F)" @click="editorStore.formatJsonDocument()">Format</button>
       <button class="toolbar-btn" :disabled="!canExportHtml" title="Export HTML" @click="handleExportHtml">Export HTML</button>
       <button
         class="toolbar-btn"

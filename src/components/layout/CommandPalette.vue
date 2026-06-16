@@ -43,6 +43,9 @@ const commands = computed<Command[]>(() => {
     const doc = editorStore.currentDocument!;
     list.push({ id: 'exporthtml', title: '匯出 HTML', run: () => void exportAsHtml(doc.fileName, doc.content) });
   }
+  if (hasDoc && editorStore.documentType === 'json') {
+    list.push({ id: 'formatjson', title: '格式化 JSON', shortcut: 'Shift+Alt+F', run: () => editorStore.formatJsonDocument() });
+  }
 
   list.push({ id: 'view-edit', title: '檢視：僅編輯', run: () => editorStore.setViewMode('edit') });
   list.push({ id: 'view-split', title: '檢視：分割', run: () => editorStore.setViewMode('split') });

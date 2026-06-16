@@ -57,6 +57,7 @@ function collapseAllNodes(): void {
           :depth="0"
           :is-last="true"
           :default-expand-depth="DEFAULT_EXPAND_DEPTH"
+          path="$"
         />
       </div>
     </template>

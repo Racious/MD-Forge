@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, inject, watch } from 'vue';
+import { copyWithToast } from '../../composables/useToast';
 
 interface ExpandController {
   signal: { value: number };
@@ -12,6 +13,7 @@ const props = defineProps<{
   depth: number;
   isLast: boolean;
   defaultExpandDepth: number;
+  path: string;
 }>();
 
 const controller = inject<ExpandController | null>('jsonExpand', null);
@@ -72,6 +74,27 @@ const summary = computed(() =>
     ? `${childCount.value} 項`
     : `${childCount.value} 個鍵`
 );
+
+function childPath(key: string | number): string {
+  if (valueType.value === 'array') return `${props.path}[${key}]`;
+  const k = String(key);
+  return /^[A-Za-z_$][\w$]*$/.test(k) ? `${props.path}.${k}` : `${props.path}[${JSON.stringify(k)}]`;
+}
+
+function copyValue(): void {
+  const v = props.value;
+  const text =
+    v !== null && typeof v === 'object'
+      ? JSON.stringify(v, null, 2)
+      : v === null
+        ? 'null'
+        : String(v);
+  copyWithToast(text, isExpandable.value ? '已複製 JSON' : '已複製值');
+}
+
+function copyPath(): void {
+  copyWithToast(props.path, '已複製路徑');
+}
 </script>
 
 <template>
@@ -96,6 +119,20 @@ const summary = computed(() =>
         <span class="json-value" :class="`type-${valueType}`">{{ displayValue }}</span>
         <span v-if="!isLast" class="json-comma">,</span>
       </template>
+
+      <span class="json-actions">
+        <button
+          class="json-copybtn"
+          :title="isExpandable ? '複製此節點 JSON' : '複製值'"
+          @click.stop="copyValue"
+        >{{ isExpandable ? '{ }' : '值' }}</button>
+        <button
+          v-if="depth > 0"
+          class="json-copybtn"
+          title="複製路徑"
+          @click.stop="copyPath"
+        >⧉</button>
+      </span>
     </div>
 
     <div v-if="isExpandable && expanded" class="json-children">
@@ -107,6 +144,7 @@ const summary = computed(() =>
         :depth="depth + 1"
         :is-last="idx === entries.length - 1"
         :default-expand-depth="defaultExpandDepth"
+        :path="childPath(childKey)"
       />
       <div class="json-row closing">
         <span class="json-toggle"><span class="json-arrow-placeholder" /></span>
@@ -193,5 +231,30 @@ const summary = computed(() =>
 }
 .json-row.closing {
   cursor: default;
+}
+.json-actions {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+.json-copybtn {
+  opacity: 0;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--color-text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.12s, background 0.12s, color 0.12s;
+}
+.json-row:hover .json-copybtn {
+  opacity: 1;
+}
+.json-copybtn:hover {
+  color: var(--color-accent);
+  border-color: var(--color-border);
+  background: var(--color-surface-hover);
 }
 </style>
