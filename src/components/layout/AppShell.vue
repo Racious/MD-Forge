@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import EditorToolbar from '../editor/EditorToolbar.vue';
 import TabBar from '../editor/TabBar.vue';
 import Sidebar from './Sidebar.vue';
@@ -15,6 +15,24 @@ const editorStore = useEditorStore();
 useKeyboardShortcuts();
 
 const showSettings = ref(false);
+
+function toggleSettings(): void {
+  showSettings.value = !showSettings.value;
+}
+
+function handleKey(e: KeyboardEvent): void {
+  if (e.key === 'Escape' && showSettings.value) {
+    showSettings.value = false;
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === ',') {
+    e.preventDefault();
+    toggleSettings();
+  }
+}
+onMounted(() => window.addEventListener('keydown', handleKey));
+onUnmounted(() => window.removeEventListener('keydown', handleKey));
+
 const showEditor = computed(() => editorStore.viewMode !== 'preview');
 const showPreview = computed(() => editorStore.viewMode !== 'edit');
 const hasDoc = computed(() => !!editorStore.currentDocument);
@@ -24,7 +42,7 @@ const showSidebar = computed(() => !hasDoc.value || editorStore.isMarkdownDocume
 
 <template>
   <div class="app-shell">
-    <EditorToolbar @open-settings="showSettings = true" />
+    <EditorToolbar :settings-open="showSettings" @toggle-settings="toggleSettings" />
     <TabBar />
 
     <div class="content-area">

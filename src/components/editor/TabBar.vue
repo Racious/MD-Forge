@@ -65,18 +65,45 @@ watch(
   }
 );
 
-onMounted(() => {
-  const el = stripRef.value;
-  if (!el) return;
-  el.addEventListener('wheel', handleWheel, { passive: false });
-  resizeObserver = new ResizeObserver(() => updateScrollState());
-  resizeObserver.observe(el);
-  updateScrollState();
-});
+// 分頁列受 v-if 控制，元素可能在元件掛載後才出現；
+// 以 watch 在 stripRef 真正存在時才掛 ResizeObserver。
+watch(
+  stripRef,
+  (el) => {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
+    if (el) {
+      resizeObserver = new ResizeObserver(() => updateScrollState());
+      resizeObserver.observe(el);
+      updateScrollState();
+    }
+  },
+  { immediate: true }
+);
+
+function handleKeydown(e: KeyboardEvent): void {
+  const ctrl = e.ctrlKey || e.metaKey;
+  if (!ctrl) return;
+  const tabs = editorStore.tabs;
+  if (e.key.toLowerCase() === 'w') {
+    if (!editorStore.activeTabId) return;
+    e.preventDefault();
+    requestClose(editorStore.activeTabId); // 沿用未儲存確認流程
+  } else if (e.key === 'Tab' && tabs.length > 1) {
+    e.preventDefault();
+    const idx = tabs.findIndex(t => t.id === editorStore.activeTabId);
+    const next = e.shiftKey
+      ? (idx - 1 + tabs.length) % tabs.length
+      : (idx + 1) % tabs.length;
+    editorStore.switchTab(tabs[next].id);
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', handleKeydown));
 
 onBeforeUnmount(() => {
-  stripRef.value?.removeEventListener('wheel', handleWheel);
   resizeObserver?.disconnect();
+  window.removeEventListener('keydown', handleKeydown);
 });
 
 function requestClose(id: string): void {
@@ -113,6 +140,7 @@ function cancelClose(): void {
     <div
       ref="stripRef"
       class="tab-strip"
+      @wheel="handleWheel"
       @scroll="updateScrollState"
       @dblclick.self="editorStore.newDocument()"
     >
@@ -124,6 +152,7 @@ function cancelClose(): void {
         :class="{ 'tab-active': tab.id === editorStore.activeTabId }"
         :title="tab.document.path ?? tab.document.fileName"
         @click="editorStore.switchTab(tab.id)"
+        @mousedown.middle.prevent="requestClose(tab.id)"
       >
         <span class="tab-type" :class="`tab-type-${tab.document.type}`">{{ tab.document.type === 'json' ? '{}' : 'M' }}</span>
         <span class="tab-name">{{ tab.document.fileName }}</span>

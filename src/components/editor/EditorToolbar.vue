@@ -8,7 +8,8 @@ import { exportAsHtml } from '../../services/htmlExportService';
 import ViewModeSwitcher from './ViewModeSwitcher.vue';
 
 const version = __APP_VERSION__;
-const emit = defineEmits<{ openSettings: [] }>();
+const props = defineProps<{ settingsOpen?: boolean }>();
+const emit = defineEmits<{ toggleSettings: [] }>();
 
 const editorStore = useEditorStore();
 const fileStore = useFileStore();
@@ -50,7 +51,12 @@ async function handleExportHtml() {
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save (Ctrl+S)" @click="editorStore.saveDocument()">Save</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save As (Ctrl+Shift+S)" @click="editorStore.saveDocumentAs()">Save As</button>
       <button class="toolbar-btn" :disabled="!canExportHtml" title="Export HTML" @click="handleExportHtml">Export HTML</button>
-      <button class="toolbar-btn" title="Settings" @click="emit('openSettings')">Settings</button>
+      <button
+        class="toolbar-btn"
+        :class="{ active: props.settingsOpen }"
+        :title="props.settingsOpen ? 'Close settings' : 'Settings'"
+        @click="emit('toggleSettings')"
+      >Settings</button>
       <button class="toolbar-btn icon-btn" :title="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`" @click="toggleTheme">
         {{ theme === 'dark' ? '☀' : '☾' }}
       </button>
@@ -110,6 +116,11 @@ async function handleExportHtml() {
 .toolbar-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+.toolbar-btn.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
 }
 .icon-btn {
   font-size: 14px;
