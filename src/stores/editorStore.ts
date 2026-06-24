@@ -159,6 +159,19 @@ export const useEditorStore = defineStore('editor', () => {
     saveSession();
   }
 
+  // 將分頁從 fromIndex 移動到 toIndex（拖拉重排用）；順序一併持久化
+  function moveTab(fromIndex: number, toIndex: number): void {
+    const len = tabs.value.length;
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 || fromIndex >= len ||
+      toIndex < 0 || toIndex >= len
+    ) return;
+    const [moved] = tabs.value.splice(fromIndex, 1);
+    tabs.value.splice(toIndex, 0, moved);
+    saveSession();
+  }
+
   function newDocument(): void {
     const doc: MarkdownDocument = {
       path: null,
@@ -345,6 +358,7 @@ export const useEditorStore = defineStore('editor', () => {
     openInTab,
     switchTab,
     closeTab,
+    moveTab,
     newDocument,
     saveDocument,
     saveDocumentAs,
