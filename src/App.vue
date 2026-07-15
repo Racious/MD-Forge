@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { check } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
@@ -11,6 +12,7 @@ import { useEditorStore } from './stores/editorStore';
 import { extractFileName, getDocumentType, isSupportedFile } from './domain/file.types';
 import { readFile } from './services/fileSystemService';
 import { notifyPortableReleaseUpdate } from './services/releaseUpdateService';
+import { executeOpenFileAction, type OpenFileOutcome } from './services/openFileRequestService';
 import AppShell from './components/layout/AppShell.vue';
 import HomePage from './pages/HomePage.vue';
 import { useToast } from './composables/useToast';
@@ -40,26 +42,57 @@ async function openFileByPath(path: string): Promise<void> {
   }
 }
 
+interface OpenFilePayload {
+  requestId: number;
+  path: string;
+  content: string;
+  source: 'cold_start' | 'second_instance';
+}
+
+async function acknowledgeOpenFile(
+  requestId: number,
+  outcome: OpenFileOutcome,
+  detail?: string
+): Promise<void> {
+  try {
+    await invoke('acknowledge_open_file', { requestId, outcome, detail: detail ?? null });
+  } catch (error) {
+    console.error('Failed to acknowledge open-file request:', error);
+  }
+}
+
 onMounted(async () => {
   settingsStore.init();
   fileStore.loadRecentFiles();
-  await editorStore.restoreSession();
 
-  // 雙擊 / 命令列開檔
-  await listen<[string, string]>('open-file', ({ payload }) => {
-    const [path, content] = payload;
-    if (!isSupportedFile(path)) return;
-    editorStore.openInTab({
-      path,
-      fileName: extractFileName(path),
-      type: getDocumentType(path),
-      content,
-      originalContent: content,
-      isDirty: false,
-      lastOpenedAt: new Date().toISOString(),
-    });
-    fileStore.loadRecentFiles();
+  // 先註冊監聽，再還原工作階段；Rust 會在 frontend_ready 前保留所有開檔請求。
+  await listen<OpenFilePayload>('open-file', async ({ payload }) => {
+    const { requestId, path, content } = payload;
+    if (!isSupportedFile(path)) {
+      await acknowledgeOpenFile(requestId, 'unsupported');
+      return;
+    }
+    await executeOpenFileAction(
+      requestId,
+      () => {
+        editorStore.openInTab({
+          path,
+          fileName: extractFileName(path),
+          type: getDocumentType(path),
+          content,
+          originalContent: content,
+          isDirty: false,
+          lastOpenedAt: new Date().toISOString(),
+        });
+        fileStore.loadRecentFiles();
+      },
+      acknowledgeOpenFile,
+      error => console.error('Failed to handle open-file request:', error)
+    );
   });
+
+  await editorStore.restoreSession();
+  await invoke<number>('frontend_ready');
 
   // 拖曳開檔
   await getCurrentWindow().onDragDropEvent((event) => {
