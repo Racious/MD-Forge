@@ -24,7 +24,7 @@ function scrollTo(entry: TocEntry): void {
     <nav v-if="toc.length" class="toc-nav">
       <a
         v-for="entry in toc"
-        :key="entry.slug + entry.text"
+        :key="entry.slug"
         class="toc-item"
         :class="`toc-h${entry.level}`"
         :href="`#${entry.slug}`"

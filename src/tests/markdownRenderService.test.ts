@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { renderMarkdown, buildHtmlDocument } from '../services/markdownRenderService';
+import {
+  renderMarkdown,
+  extractToc,
+  buildHtmlDocument,
+} from '../services/markdownRenderService';
 
 describe('renderMarkdown', () => {
   it('renders headings', () => {
@@ -55,6 +59,67 @@ describe('renderMarkdown', () => {
   it('does not inject raw HTML when html option is false', () => {
     const html = renderMarkdown('<script>alert(1)</script>');
     expect(html).not.toContain('<script>');
+  });
+});
+
+describe('table of contents', () => {
+  it('uses the same unique slugs as rendered headings with duplicate text', () => {
+    const content = '## Same\n\n## Same\n\n## Same-1\n\n## Same';
+    const html = renderMarkdown(content);
+    const toc = extractToc(content);
+
+    expect(toc.map(entry => entry.slug)).toEqual([
+      'same',
+      'same-1',
+      'same-1-1',
+      'same-2',
+    ]);
+    expect([...html.matchAll(/<h2 id="([^"]+)"/g)].map(match => match[1])).toEqual(
+      toc.map(entry => entry.slug),
+    );
+  });
+
+  it('ignores heading-looking text inside fenced code blocks', () => {
+    const content = '# Visible\n\n```md\n## Not a heading\n```\n\n## Also visible';
+
+    expect(extractToc(content).map(entry => entry.text)).toEqual([
+      'Visible',
+      'Also visible',
+    ]);
+  });
+
+  it('preserves the existing ATX-only TOC behavior', () => {
+    const content = 'Setext heading\n==============\n\n# ATX heading';
+
+    expect(extractToc(content).map(entry => entry.text)).toEqual(['ATX heading']);
+  });
+
+  it('preserves the existing top-level line-start heading scope', () => {
+    const content = [
+      '# Top level',
+      '',
+      '> ## Quoted heading',
+      '',
+      '- item',
+      '  ### Heading in list',
+      '',
+      '   #### Indented heading',
+    ].join('\n');
+
+    expect(extractToc(content).map(entry => entry.text)).toEqual(['Top level']);
+  });
+
+  it('keeps a readable label when a heading contains only an image', () => {
+    const content = '# ![alt text](image.png)';
+
+    expect(extractToc(content)).toEqual([
+      {
+        level: 1,
+        text: '![alt text](image.png)',
+        slug: '',
+        line: 1,
+      },
+    ]);
   });
 });
 

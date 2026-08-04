@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import type { DocumentType, MarkdownDocument, Tab, ViewMode } from '../domain/markdown.types';
-import { renderMarkdown, extractToc, type TocEntry } from '../services/markdownRenderService';
+import { renderMarkdownWithToc, type TocEntry } from '../services/markdownRenderService';
 import { readFile, saveFile, saveFileAs } from '../services/fileSystemService';
 import { addRecentFile } from '../services/recentFileService';
 import { extractFileName, getDocumentType } from '../domain/file.types';
@@ -320,10 +320,11 @@ export const useEditorStore = defineStore('editor', () => {
     }
     const content = doc?.content ?? '';
     isRendering.value = true;
-    let html = renderMarkdown(content);
+    const rendered = renderMarkdownWithToc(content);
+    let html = rendered.html;
     if (doc?.path) html = resolveImageSrcs(html, doc.path);
     renderedHtml.value = html;
-    toc.value = extractToc(content);
+    toc.value = rendered.toc;
     isRendering.value = false;
   }
 

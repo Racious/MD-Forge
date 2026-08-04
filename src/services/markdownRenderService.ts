@@ -1,4 +1,5 @@
 import MarkdownIt from "markdown-it";
+import type Token from "markdown-it/lib/token.mjs";
 // @ts-ignore
 import taskLists from "markdown-it-task-lists";
 // @ts-ignore
@@ -15,6 +16,13 @@ function slugifyHeading(s: string): string {
     .replace(/^-|-$/g, "");
 }
 
+function getHeadingText(tokens: Token[]): string {
+  return tokens
+    .filter(token => token.type === 'text' || token.type === 'code_inline')
+    .map(token => token.content)
+    .join('');
+}
+
 const md = new MarkdownIt({
   html: true,
   xhtmlOut: false,
@@ -23,7 +31,11 @@ const md = new MarkdownIt({
   linkify: true,
   typographer: false,
 })
-  .use(anchor, { permalink: false, slugify: slugifyHeading })
+  .use(anchor, {
+    permalink: false,
+    slugify: slugifyHeading,
+    getTokensText: getHeadingText,
+  })
   .use(taskLists, { enabled: true, label: true });
 
 // data: URI 不做 URL 編碼，避免 base64 中的 +/= 被破壞
@@ -54,27 +66,70 @@ export interface TocEntry {
   line: number;
 }
 
-export function extractToc(content: string): TocEntry[] {
+export interface RenderedMarkdown {
+  html: string;
+  toc: TocEntry[];
+}
+
+function extractTocFromTokens(tokens: Token[], content: string): TocEntry[] {
   const entries: TocEntry[] = [];
-  const lines = content.split("\n");
-  lines.forEach((line, index) => {
-    const match = line.match(/^(#{1,6})\s+(.+)/);
-    if (match) {
-      const level = match[1].length;
-      const text = match[2].replace(/[*_`~]/g, "").trim();
-      entries.push({ level, text, slug: slugifyHeading(text), line: index + 1 });
+  const sourceLines = content.split(/\r?\n/);
+
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token.type !== 'heading_open' || !/^#{1,6}$/.test(token.markup)) continue;
+
+    const sourceLine = token.map?.[0];
+    if (sourceLine === undefined || !/^(#{1,6})\s+/.test(sourceLines[sourceLine] ?? '')) {
+      continue;
     }
-  });
+
+    const inlineToken = tokens[index + 1];
+    const parsedText = inlineToken?.children ? getHeadingText(inlineToken.children) : '';
+    const text = parsedText || inlineToken?.content || '';
+    // markdown-it-anchor assigns every h1-h6 a document-unique id during md.parse().
+    // Without that id, a TOC href cannot target the rendered heading safely.
+    const slug = token.attrGet('id');
+    if (slug === null) continue;
+    const line = sourceLine + 1;
+
+    entries.push({
+      level: Number(token.tag.slice(1)),
+      text,
+      slug,
+      line,
+    });
+  }
+
   return entries;
 }
 
-export function renderMarkdown(content: string): string {
-  const raw = md.render(content);
+function sanitizeRenderedHtml(raw: string): string {
   // 保留排版用 HTML（details、align 等），移除危險標籤與事件屬性
   return DOMPurify.sanitize(raw, {
     ADD_TAGS: ['details', 'summary'],
     ADD_ATTR: ['align', 'target'],
   }) as string;
+}
+
+export function renderMarkdownWithToc(content: string): RenderedMarkdown {
+  const env = {};
+  const tokens = md.parse(content, env);
+  const raw = md.renderer.render(tokens, md.options, env);
+
+  return {
+    html: sanitizeRenderedHtml(raw),
+    toc: extractTocFromTokens(tokens, content),
+  };
+}
+
+// Compatibility helper. App rendering should use renderMarkdownWithToc() to parse once.
+export function extractToc(content: string): TocEntry[] {
+  return extractTocFromTokens(md.parse(content, {}), content);
+}
+
+export function renderMarkdown(content: string): string {
+  return renderMarkdownWithToc(content).html;
 }
 
 export function buildHtmlDocument(title: string, renderedHtml: string): string {
