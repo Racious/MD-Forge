@@ -1,0 +1,7 @@
+{
+  "markdown": { "extensions": ["md", "markdown", "mdx"], "label": "Markdown", "badge": "M" },
+  "json": { "extensions": ["json"], "label": "JSON", "badge": "{}" },
+  "text": { "extensions": ["txt"], "label": "Text", "badge": "TXT" },
+  "sql": { "extensions": ["sql"], "label": "SQL", "badge": "SQL" },
+  "yaml": { "extensions": ["yaml", "yml"], "label": "YAML", "badge": "YAML" }
+}

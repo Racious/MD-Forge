@@ -2,8 +2,10 @@
 import { computed, ref, provide } from 'vue';
 import { useEditorStore } from '../../stores/editorStore';
 import JsonTreeNode from './JsonTreeNode.vue';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 const editorStore = useEditorStore();
+const settingsStore = useSettingsStore();
 
 const DEFAULT_EXPAND_DEPTH = 2;
 
@@ -11,7 +13,7 @@ const parsed = computed<{ ok: true; value: unknown } | { ok: false; error: strin
   const content = editorStore.currentDocument?.content ?? '';
   if (!content.trim()) return { ok: true, value: null };
   try {
-    return { ok: true, value: JSON.parse(content) };
+    return { ok: true, value: JSON.parse(content.replace(/^\uFEFF/, '')) };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -50,7 +52,7 @@ function collapseAllNodes(): void {
         <button class="json-tool-btn" @click="expandAllNodes">全部展開</button>
         <button class="json-tool-btn" @click="collapseAllNodes">全部縮合</button>
       </div>
-      <div class="json-tree-scroll">
+      <div class="json-tree-scroll" :style="{ fontSize: `${13 * settingsStore.previewFontSize / 15}px` }">
         <JsonTreeNode
           :node-key="null"
           :value="parsed.value"
@@ -67,7 +69,8 @@ function collapseAllNodes(): void {
 <style scoped>
 .json-tree-container {
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;

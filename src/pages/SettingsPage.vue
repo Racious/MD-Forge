@@ -131,11 +131,22 @@ async function installAppUpdate() {
     </div>
 
     <div class="setting-row">
-      <label>Font Size</label>
+      <label>Editor Font Size</label>
       <div class="number-ctrl">
         <button class="btn" @click="settings.setFontSize(settings.fontSize - 1)">-</button>
         <span>{{ settings.fontSize }}px</span>
         <button class="btn" @click="settings.setFontSize(settings.fontSize + 1)">+</button>
+        <button class="btn" @click="settings.resetFontSize">Reset</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <label>Preview Font Size</label>
+      <div class="number-ctrl">
+        <button class="btn" @click="settings.setPreviewFontSize(settings.previewFontSize - 1)">-</button>
+        <span>{{ settings.previewFontSize }}px</span>
+        <button class="btn" @click="settings.setPreviewFontSize(settings.previewFontSize + 1)">+</button>
+        <button class="btn" @click="settings.resetPreviewFontSize">Reset</button>
       </div>
     </div>
 

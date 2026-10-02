@@ -184,20 +184,59 @@ impl OpenFileCoordinator {
     }
 }
 
+#[derive(serde::Deserialize)]
+struct FileFormat {
+    label: String,
+    extensions: Vec<String>,
+}
+
+fn file_formats() -> HashMap<String, FileFormat> {
+    serde_json::from_str(include_str!("../../src/domain/file-formats.json"))
+        .expect("compiled file-format registry must be valid")
+}
+
+fn format_for_extension<'a>(
+    formats: &'a HashMap<String, FileFormat>,
+    extension: &str,
+) -> Option<&'a FileFormat> {
+    formats.values().find(|format| {
+        format
+            .extensions
+            .iter()
+            .any(|ext| ext.eq_ignore_ascii_case(extension))
+    })
+}
+
+fn validate_document_path(path: &str) -> Result<(), String> {
+    let extension = std::path::Path::new(path)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("");
+    if format_for_extension(&file_formats(), extension).is_none() {
+        return Err(format!("Unsupported file type: {}", path));
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn open_supported_file(app: tauri::AppHandle) -> Result<Option<(String, String)>, String> {
-    let file = app
-        .dialog()
-        .file()
-        .add_filter("All supported", &["md", "markdown", "mdx", "json"])
-        .add_filter("Markdown", &["md", "markdown", "mdx"])
-        .add_filter("JSON", &["json"])
-        .add_filter("All files", &["*"])
-        .blocking_pick_file();
+    let formats = file_formats();
+    let extensions: Vec<&str> = formats
+        .values()
+        .flat_map(|format| format.extensions.iter().map(String::as_str))
+        .collect();
+    let mut dialog = app.dialog().file().add_filter("All supported", &extensions);
+    for kind in ["markdown", "json", "text", "sql", "yaml"] {
+        let format = &formats[kind];
+        let exts: Vec<&str> = format.extensions.iter().map(String::as_str).collect();
+        dialog = dialog.add_filter(&format.label, &exts);
+    }
+    let file = dialog.add_filter("All files", &["*"]).blocking_pick_file();
 
     match file {
         Some(path) => {
             let path_str = path.to_string();
+            validate_document_path(&path_str)?;
             let content = std::fs::read_to_string(&path_str)
                 .map_err(|e| format!("Failed to read file: {}", e))?;
             Ok(Some((path_str, content)))
@@ -208,33 +247,37 @@ async fn open_supported_file(app: tauri::AppHandle) -> Result<Option<(String, St
 
 #[tauri::command]
 async fn read_file(path: String) -> Result<String, String> {
+    validate_document_path(&path)?;
     std::fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
 }
 
 #[tauri::command]
 async fn save_file(path: String, content: String) -> Result<(), String> {
+    validate_document_path(&path)?;
     std::fs::write(&path, content).map_err(|e| format!("Failed to write file: {}", e))
 }
 
 #[tauri::command]
 async fn save_file_as(
     app: tauri::AppHandle,
-    content: String,
     default_name: String,
     extension: String,
 ) -> Result<Option<String>, String> {
-    // 依當前文件類型，預設選取對應的副檔名過濾器（置於首位即為預設）
-    let (type_label, type_exts): (&str, Vec<&str>) = if extension == "json" {
-        ("JSON", vec!["json"])
-    } else {
-        ("Markdown", vec!["md", "markdown", "mdx"])
-    };
+    // Select a destination first; frontend validates/formats and calls save_file afterward.
+    let formats = file_formats();
+    let format = format_for_extension(&formats, &extension)
+        .ok_or_else(|| format!("Unsupported extension: {}", extension))?;
+    let type_exts: Vec<&str> = format.extensions.iter().map(String::as_str).collect();
+    let extensions: Vec<&str> = formats
+        .values()
+        .flat_map(|format| format.extensions.iter().map(String::as_str))
+        .collect();
 
     let file = app
         .dialog()
         .file()
-        .add_filter(type_label, &type_exts)
-        .add_filter("All supported", &["md", "markdown", "mdx", "json"])
+        .add_filter(&format.label, &type_exts)
+        .add_filter("All supported", &extensions)
         .add_filter("All files", &["*"])
         .set_file_name(&default_name)
         .blocking_save_file();
@@ -242,8 +285,7 @@ async fn save_file_as(
     match file {
         Some(path) => {
             let path_str = path.to_string();
-            std::fs::write(&path_str, content)
-                .map_err(|e| format!("Failed to write file: {}", e))?;
+            validate_document_path(&path_str)?;
             Ok(Some(path_str))
         }
         None => Ok(None),
@@ -481,6 +523,61 @@ mod tests {
         sync::{mpsc, Arc, Barrier},
         thread,
     };
+
+    #[test]
+    fn shared_file_registry_covers_aliases_and_case() {
+        for extension in ["md", "markdown", "mdx", "json", "txt", "sql", "yaml", "yml"] {
+            assert!(validate_document_path(&format!("中文/fixture.{}", extension)).is_ok());
+            assert!(
+                validate_document_path(&format!("中文/fixture.{}", extension.to_uppercase()))
+                    .is_ok()
+            );
+        }
+        assert!(validate_document_path("file.html").is_err());
+        assert!(validate_document_path("directory.sql/file").is_err());
+        let formats = file_formats();
+        assert_eq!(format_for_extension(&formats, "YML").unwrap().label, "YAML");
+    }
+
+    #[test]
+    fn raw_text_file_io_preserves_utf8_bytes() {
+        let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../tmp/verification/native-text");
+        std::fs::create_dir_all(&directory).unwrap();
+        let samples = [
+            "中文\n  # 註解\n",
+            "\u{feff}中文\r\n  # 註解\r\n",
+            "中文\r\n末行",
+            "单行",
+            "a\rb\r",
+        ];
+        for extension in ["txt", "sql", "yaml", "yml"] {
+            for (index, content) in samples.iter().enumerate() {
+                let path = directory.join(format!("中文-{}-{}.{}", extension, index, extension));
+                let path = path.to_string_lossy().into_owned();
+                tauri::async_runtime::block_on(save_file(path.clone(), content.to_string()))
+                    .unwrap();
+                assert_eq!(std::fs::read(&path).unwrap(), content.as_bytes());
+                assert_eq!(
+                    tauri::async_runtime::block_on(read_file(path)).unwrap(),
+                    *content
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn invalid_utf8_reports_read_error_and_unsupported_save_is_rejected() {
+        let directory = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../tmp/verification/native-text");
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = directory.join("invalid.txt").to_string_lossy().into_owned();
+        std::fs::write(&path, [0xff, 0xfe, 0x41]).unwrap();
+        assert!(tauri::async_runtime::block_on(read_file(path)).is_err());
+        assert!(
+            tauri::async_runtime::block_on(save_file("file.html".into(), "raw".into())).is_err()
+        );
+    }
 
     #[test]
     fn open_requests_wait_until_frontend_is_ready() {

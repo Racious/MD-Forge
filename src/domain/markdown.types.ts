@@ -4,7 +4,8 @@ export type ThemeMode = 'light' | 'dark';
 
 export type SupportedMarkdownExtension = 'md' | 'markdown' | 'mdx';
 
-export type DocumentType = 'markdown' | 'json';
+export type DocumentType = 'markdown' | 'json' | 'text' | 'sql' | 'yaml';
+export type LineEnding = '\n' | '\r\n' | '\r';
 
 export interface MarkdownDocument {
   path: string | null;
@@ -13,6 +14,7 @@ export interface MarkdownDocument {
   content: string;
   originalContent: string;
   isDirty: boolean;
+  lineEnding?: LineEnding;
   lastOpenedAt?: string;
   lastSavedAt?: string;
 }
@@ -34,4 +36,5 @@ export interface EditorSettings {
   autoSave: boolean;
   wordWrap: boolean;
   fontSize: number;
+  previewFontSize: number;
 }

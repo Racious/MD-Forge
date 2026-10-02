@@ -2,6 +2,7 @@
 import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useEditorStore } from '../../stores/editorStore';
 import ConfirmDialog from '../common/ConfirmDialog.vue';
+import { DOCUMENT_FORMATS } from '../../domain/file.types';
 
 const editorStore = useEditorStore();
 
@@ -284,7 +285,7 @@ function cancelClose(): void {
         @mousedown="onTabMouseDown(index, tab.id, $event)"
         @click="onTabClick(tab.id)"
       >
-        <span class="tab-type" :class="`tab-type-${tab.document.type}`">{{ tab.document.type === 'json' ? '{}' : 'M' }}</span>
+        <span class="tab-type" :class="`tab-type-${tab.document.type}`">{{ DOCUMENT_FORMATS[tab.document.type].badge }}</span>
         <span class="tab-name">{{ tab.document.fileName }}</span>
         <span v-if="tab.document.isDirty" class="tab-dirty" title="Unsaved changes">●</span>
         <button

@@ -7,14 +7,15 @@ import {
   removeRecentFile as persistRemove,
   clearRecentFiles as persistClear,
 } from '../services/recentFileService';
-import { openSupportedFile } from '../services/fileSystemService';
+import { openSupportedFile, readFile } from '../services/fileSystemService';
 import { useEditorStore } from './editorStore';
+import { extractFileName, getDocumentType, isSupportedFile } from '../domain/file.types';
 
 export const useFileStore = defineStore('file', () => {
   const recentFiles = ref<RecentFile[]>([]);
 
   function loadRecentFiles(): void {
-    recentFiles.value = getRecentFiles();
+    recentFiles.value = getRecentFiles().filter(file => isSupportedFile(file.path));
   }
 
   function addRecentFile(file: RecentFile): void {
@@ -42,9 +43,8 @@ export const useFileStore = defineStore('file', () => {
   }
 
   async function openFileByPath(path: string): Promise<void> {
+    getDocumentType(path);
     const editorStore = useEditorStore();
-    const { readFile } = await import('../services/fileSystemService');
-    const { extractFileName, getDocumentType } = await import('../domain/file.types');
     try {
       const content = await readFile(path);
       editorStore.openInTab({

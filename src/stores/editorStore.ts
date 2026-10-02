@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { convertFileSrc } from '@tauri-apps/api/core';
-import type { DocumentType, MarkdownDocument, Tab, ViewMode } from '../domain/markdown.types';
+import type { LineEnding, MarkdownDocument, Tab, ViewMode, DocumentType } from '../domain/markdown.types';
 import { renderMarkdownWithToc, type TocEntry } from '../services/markdownRenderService';
 import { readFile, saveFile, saveFileAs } from '../services/fileSystemService';
 import { addRecentFile } from '../services/recentFileService';
-import { extractFileName, getDocumentType } from '../domain/file.types';
+import { extractFileName, getDocumentType, isSupportedFile } from '../domain/file.types';
+import { detectLineEnding, formatJsonContent } from '../services/documentTextService';
 import { useSettingsStore } from './settingsStore';
 
 function resolveImageSrcs(html: string, docPath: string): string {
@@ -31,6 +32,7 @@ interface SessionTab {
   isDirty: boolean;
   originalContent: string;
   type?: DocumentType;
+  lineEnding?: LineEnding;
 }
 
 interface SessionData {
@@ -76,7 +78,8 @@ export const useEditorStore = defineStore('editor', () => {
     const doc = currentDocument.value;
     if (!doc || doc.type !== 'json') return false;
     try {
-      const formatted = JSON.stringify(JSON.parse(doc.content), null, 2);
+      JSON.parse(doc.content.replace(/^\uFEFF/, ''));
+      const formatted = formatJsonContent(doc.content);
       if (formatted !== doc.content) setContent(formatted);
       return true;
     } catch {
@@ -85,18 +88,19 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   // 存檔前：依設定自動格式化 JSON（不合法則原樣存檔）
-  function maybeFormatOnSave(doc: MarkdownDocument): void {
+  function contentForSave(doc: MarkdownDocument): string {
     const settings = useSettingsStore();
-    if (!settings.formatJsonOnSave || doc.type !== 'json') return;
-    try {
-      const formatted = JSON.stringify(JSON.parse(doc.content), null, 2);
-      if (formatted !== doc.content) {
-        doc.content = formatted;
-        renderPreview();
-      }
-    } catch {
-      // JSON 不合法，保留原內容存檔
-    }
+    return settings.formatJsonOnSave && doc.type === 'json' ? formatJsonContent(doc.content) : doc.content;
+  }
+
+  function markSaved(doc: MarkdownDocument, before: string, saved: string): void {
+    // A save dialog/write may finish after a tab switch or another edit.
+    if (doc.content === before) doc.content = saved;
+    doc.originalContent = saved;
+    doc.isDirty = doc.content !== saved;
+    doc.lastSavedAt = new Date().toISOString();
+    if (currentDocument.value === doc) renderPreview();
+    saveSession();
   }
 
   function openInTab(document: MarkdownDocument): void {
@@ -110,7 +114,7 @@ export const useEditorStore = defineStore('editor', () => {
     }
 
     const id = generateId();
-    const doc: MarkdownDocument = { ...document };
+    const doc: MarkdownDocument = { ...document, lineEnding: document.lineEnding ?? detectLineEnding(document.content) };
     const tab: Tab = { id, document: doc };
     tabs.value.push(tab);
     activeTabId.value = id;
@@ -180,6 +184,7 @@ export const useEditorStore = defineStore('editor', () => {
       content: '',
       originalContent: '',
       isDirty: false,
+      lineEnding: '\n',
     };
     const id = generateId();
     const tab: Tab = { id, document: doc };
@@ -195,14 +200,11 @@ export const useEditorStore = defineStore('editor', () => {
     const doc = currentDocument.value;
     if (!doc) return;
 
-    maybeFormatOnSave(doc);
-
     if (doc.path) {
-      await saveFile(doc.path, doc.content);
-      doc.originalContent = doc.content;
-      doc.isDirty = false;
-      doc.lastSavedAt = new Date().toISOString();
-      saveSession();
+      const before = doc.content;
+      const saved = contentForSave(doc);
+      await saveFile(doc.path, saved);
+      markSaved(doc, before, saved);
     } else {
       await saveDocumentAs();
     }
@@ -212,22 +214,18 @@ export const useEditorStore = defineStore('editor', () => {
     const doc = currentDocument.value;
     if (!doc) return;
 
-    maybeFormatOnSave(doc);
-
-    const path = await saveFileAs(doc.content, doc.type);
-    if (path) {
-      doc.path = path;
-      doc.fileName = extractFileName(path);
-      doc.type = getDocumentType(path);
-      doc.originalContent = doc.content;
-      doc.isDirty = false;
-      doc.lastSavedAt = new Date().toISOString();
+    const before = doc.content;
+    const saved = await saveFileAs(before, doc.type, doc.fileName, useSettingsStore().formatJsonOnSave);
+    if (saved) {
+      doc.path = saved.path;
+      doc.fileName = extractFileName(saved.path);
+      doc.type = saved.type;
       addRecentFile({
-        path,
+        path: saved.path,
         fileName: doc.fileName,
         lastOpenedAt: new Date().toISOString(),
       });
-      saveSession();
+      markSaved(doc, before, saved.content);
     }
   }
 
@@ -245,6 +243,7 @@ export const useEditorStore = defineStore('editor', () => {
         isDirty: t.document.isDirty,
         originalContent: t.document.originalContent,
         type: t.document.type,
+        lineEnding: t.document.lineEnding,
       })),
       activeTabId: activeTabId.value,
     };
@@ -263,10 +262,13 @@ export const useEditorStore = defineStore('editor', () => {
       if (!session.tabs?.length) return false;
 
       for (const tabData of session.tabs) {
+        const nameOrPath = tabData.path ?? tabData.fileName;
+        const recoverUnsupported = !isSupportedFile(nameOrPath);
+        if (recoverUnsupported && !tabData.isDirty) continue;
         let content = tabData.content;
         let originalContent = tabData.originalContent;
 
-        if (tabData.path) {
+        if (tabData.path && !recoverUnsupported) {
           try {
             const diskContent = await readFile(tabData.path);
             originalContent = diskContent;
@@ -276,19 +278,23 @@ export const useEditorStore = defineStore('editor', () => {
           }
         }
 
+        // 舊版允許任意副檔名；保全未存文字並要求另存，不能覆寫原檔。
         const doc: MarkdownDocument = {
-          path: tabData.path,
-          fileName: tabData.fileName,
-          type: tabData.type ?? getDocumentType(tabData.path ?? tabData.fileName),
+          path: recoverUnsupported ? null : tabData.path,
+          fileName: recoverUnsupported ? `${extractFileName(nameOrPath)}.txt` : tabData.fileName,
+          type: recoverUnsupported ? 'text' : getDocumentType(nameOrPath),
           content,
           originalContent,
-          isDirty: tabData.isDirty,
+          isDirty: recoverUnsupported || content !== originalContent,
+          lineEnding: tabData.isDirty && ['\n', '\r\n', '\r'].includes(tabData.lineEnding ?? '')
+            ? tabData.lineEnding! : detectLineEnding(content),
         };
 
         const tab: Tab = { id: tabData.id, document: doc };
         tabs.value.push(tab);
       }
 
+      if (!tabs.value.length) return false;
       const activeId = session.activeTabId ?? session.tabs[0]?.id ?? null;
       if (activeId && tabs.value.find(t => t.id === activeId)) {
         switchTab(activeId);
@@ -312,7 +318,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   function renderPreview(): void {
     const doc = currentDocument.value;
-    if (doc?.type === 'json') {
+    if (doc && doc.type !== 'markdown') {
       renderedHtml.value = '';
       toc.value = [];
       isRendering.value = false;

@@ -3,7 +3,7 @@ import logoUrl from '../../src-tauri/icons/icon.png';
 import { useFileStore } from '../stores/fileStore';
 import { useEditorStore } from '../stores/editorStore';
 import { useUnsavedGuard } from '../composables/useUnsavedGuard';
-import { getDocumentType } from '../domain/file.types';
+import { getDocumentType, DOCUMENT_FORMATS, isSupportedFile } from '../domain/file.types';
 
 const fileStore = useFileStore();
 const editorStore = useEditorStore();
@@ -29,7 +29,7 @@ function handleNew() {
     <div class="welcome-card">
       <img :src="logoUrl" class="logo" alt="MD Forge" />
       <h1 class="title">MD Forge</h1>
-      <p class="subtitle">Local Markdown & JSON Editor · Offline · Fast</p>
+      <p class="subtitle">Markdown · JSON · TXT · SQL · YAML — Local & Offline</p>
 
       <div class="actions">
         <button class="btn-primary" @click="handleOpen">Open Document</button>
@@ -47,14 +47,14 @@ function handleNew() {
       <h2 class="section-title">Recent Files</h2>
       <ul class="recent-grid">
         <li
-          v-for="file in fileStore.recentFiles.slice(0, 6)"
+          v-for="file in fileStore.recentFiles.filter(file => isSupportedFile(file.path)).slice(0, 6)"
           :key="file.path"
           class="recent-card"
           :title="file.path"
           @click="fileStore.openFileByPath(file.path)"
         >
           <span class="card-icon" :class="`card-icon-${getDocumentType(file.path)}`">
-            {{ getDocumentType(file.path) === 'json' ? '{}' : 'M' }}
+            {{ DOCUMENT_FORMATS[getDocumentType(file.path)].badge }}
           </span>
           <span class="card-name">{{ file.fileName }}</span>
           <span class="card-path">{{ file.path }}</span>

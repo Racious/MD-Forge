@@ -76,7 +76,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="preview-container">
+  <div class="preview-container" :style="{ '--preview-font-size': `${settingsStore.previewFontSize}px` }">
     <div
       v-if="html"
       ref="previewRef"
@@ -92,7 +92,8 @@ onMounted(async () => {
 <style scoped>
 .preview-container {
   width: 100%;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 1.5rem 2rem;
   box-sizing: border-box;

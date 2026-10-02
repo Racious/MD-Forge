@@ -2,6 +2,7 @@
 import { onMounted } from 'vue';
 import { useFileStore } from '../../stores/fileStore';
 import { useUnsavedGuard } from '../../composables/useUnsavedGuard';
+import { getDocumentType, DOCUMENT_FORMATS } from '../../domain/file.types';
 
 const fileStore = useFileStore();
 const { guardedOpenFile } = useUnsavedGuard();
@@ -35,7 +36,7 @@ async function openRecent(path: string) {
         :title="file.path"
         @click="openRecent(file.path)"
       >
-        <span class="file-icon">📄</span>
+        <span class="file-icon">{{ DOCUMENT_FORMATS[getDocumentType(file.path)].badge }}</span>
         <span class="file-info">
           <span class="file-name">{{ file.fileName }}</span>
           <span class="file-date">{{ formatDate(file.lastOpenedAt) }}</span>

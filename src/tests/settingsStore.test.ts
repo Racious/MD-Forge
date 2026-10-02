@@ -14,6 +14,7 @@ describe('settingsStore', () => {
     expect(store.theme).toBe('dark');
     expect(store.wordWrap).toBe(true);
     expect(store.fontSize).toBe(14);
+    expect(store.previewFontSize).toBe(15);
   });
 
   it('saves and reloads settings', () => {
@@ -41,4 +42,37 @@ describe('settingsStore', () => {
     store.toggleWordWrap();
     expect(store.wordWrap).toBe(!initial);
   });
+
+  it('migrates old editor size and supplies preview default independently', () => {
+    localStorage.setItem('mdforge_settings', JSON.stringify({ fontSize: 19 }));
+    const store = useSettingsStore();
+    store.loadSettings();
+    expect([store.fontSize, store.previewFontSize]).toEqual([19, 15]);
+  });
+
+  it('persists both sizes and resets each without changing the other', () => {
+    const store = useSettingsStore();
+    store.setFontSize(20);
+    store.setPreviewFontSize(24);
+    setActivePinia(createPinia());
+    const restored = useSettingsStore();
+    restored.loadSettings();
+    expect([restored.fontSize, restored.previewFontSize]).toEqual([20, 24]);
+    restored.resetFontSize();
+    expect([restored.fontSize, restored.previewFontSize]).toEqual([14, 24]);
+    restored.resetPreviewFontSize();
+    expect([restored.fontSize, restored.previewFontSize]).toEqual([14, 15]);
+  });
+
+  it.each([[-9, 10], [99, 24], [18.7, 19], [null, 15], ['18', 15]])(
+    'validates stored preview size %s', (stored, expected) => {
+      localStorage.setItem('mdforge_settings', JSON.stringify({ fontSize: 99, previewFontSize: stored }));
+      const store = useSettingsStore();
+      store.loadSettings();
+      expect(store.fontSize).toBe(24);
+      expect(store.previewFontSize).toBe(expected);
+      store.setPreviewFontSize(NaN);
+      expect(store.previewFontSize).toBe(15);
+    },
+  );
 });

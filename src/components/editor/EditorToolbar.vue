@@ -48,7 +48,7 @@ async function handleExportHtml() {
 
     <div class="toolbar-right">
       <ViewModeSwitcher v-if="hasDoc" />
-      <button class="toolbar-btn" title="Open file (Ctrl+O)" @click="handleOpen">Open</button>
+      <button class="toolbar-btn" title="Open Markdown, JSON, TXT, SQL or YAML (Ctrl+O)" @click="handleOpen">Open</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save (Ctrl+S)" @click="editorStore.saveDocument()">Save</button>
       <button class="toolbar-btn" :disabled="!hasDoc" title="Save As (Ctrl+Shift+S)" @click="editorStore.saveDocumentAs()">Save As</button>
       <button v-if="isJsonDoc" class="toolbar-btn" title="Format JSON (Shift+Alt+F)" @click="editorStore.formatJsonDocument()">Format</button>

@@ -10,6 +10,7 @@ interface SettingsData {
   autoSave: boolean;
   wordWrap: boolean;
   fontSize: number;
+  previewFontSize: number;
   formatJsonOnSave: boolean;
 }
 
@@ -19,6 +20,7 @@ const DEFAULTS: SettingsData = {
   autoSave: false,
   wordWrap: true,
   fontSize: 14,
+  previewFontSize: 15,
   formatJsonOnSave: true,
 };
 
@@ -28,6 +30,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const autoSave = ref(DEFAULTS.autoSave);
   const wordWrap = ref(DEFAULTS.wordWrap);
   const fontSize = ref(DEFAULTS.fontSize);
+  const previewFontSize = ref(DEFAULTS.previewFontSize);
   const formatJsonOnSave = ref(DEFAULTS.formatJsonOnSave);
 
   function loadSettings(): void {
@@ -39,7 +42,8 @@ export const useSettingsStore = defineStore('settings', () => {
       viewMode.value = data.viewMode ?? DEFAULTS.viewMode;
       autoSave.value = data.autoSave ?? DEFAULTS.autoSave;
       wordWrap.value = data.wordWrap ?? DEFAULTS.wordWrap;
-      fontSize.value = data.fontSize ?? DEFAULTS.fontSize;
+      fontSize.value = normalizeFontSize(data.fontSize, DEFAULTS.fontSize);
+      previewFontSize.value = normalizeFontSize(data.previewFontSize, DEFAULTS.previewFontSize);
       formatJsonOnSave.value = data.formatJsonOnSave ?? DEFAULTS.formatJsonOnSave;
     } catch {
       // ignore malformed data
@@ -53,6 +57,7 @@ export const useSettingsStore = defineStore('settings', () => {
       autoSave: autoSave.value,
       wordWrap: wordWrap.value,
       fontSize: fontSize.value,
+      previewFontSize: previewFontSize.value,
       formatJsonOnSave: formatJsonOnSave.value,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -65,9 +70,17 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function setFontSize(value: number): void {
-    fontSize.value = Math.max(10, Math.min(24, value));
+    fontSize.value = normalizeFontSize(value, DEFAULTS.fontSize);
     saveSettings();
   }
+
+  function setPreviewFontSize(value: number): void {
+    previewFontSize.value = normalizeFontSize(value, DEFAULTS.previewFontSize);
+    saveSettings();
+  }
+
+  function resetFontSize(): void { setFontSize(DEFAULTS.fontSize); }
+  function resetPreviewFontSize(): void { setPreviewFontSize(DEFAULTS.previewFontSize); }
 
   function toggleWordWrap(): void {
     wordWrap.value = !wordWrap.value;
@@ -94,13 +107,22 @@ export const useSettingsStore = defineStore('settings', () => {
     autoSave,
     wordWrap,
     fontSize,
+    previewFontSize,
     formatJsonOnSave,
     loadSettings,
     saveSettings,
     setTheme,
     setFontSize,
+    setPreviewFontSize,
+    resetFontSize,
+    resetPreviewFontSize,
     toggleWordWrap,
     toggleFormatJsonOnSave,
     init,
   };
 });
+
+function normalizeFontSize(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.max(10, Math.min(24, Math.round(value))) : fallback;
+}

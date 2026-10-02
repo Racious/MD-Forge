@@ -28,6 +28,7 @@ export default defineConfig(async () => ({
     },
   },
   test: {
+    include: ['src/tests/**/*.test.ts'],
     environment: 'happy-dom',
     globals: true,
   },

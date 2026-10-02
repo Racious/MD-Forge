@@ -158,7 +158,7 @@ function copyPath(): void {
 <style scoped>
 .json-node {
   font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
-  font-size: 13px;
+  font-size: inherit;
   line-height: 1.6;
 }
 .json-row {

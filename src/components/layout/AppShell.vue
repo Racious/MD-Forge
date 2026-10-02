@@ -11,12 +11,20 @@ import SettingsPage from '../../pages/SettingsPage.vue';
 import CommandPalette from './CommandPalette.vue';
 import { useEditorStore } from '../../stores/editorStore';
 import { useKeyboardShortcuts } from '../../composables/useKeyboardShortcuts';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { usePaneZoom } from '../../composables/usePaneZoom';
+import PaneZoomControls from '../editor/PaneZoomControls.vue';
+import CodePreview from '../editor/CodePreview.vue';
 
 const editorStore = useEditorStore();
 useKeyboardShortcuts();
 
 const showSettings = ref(false);
 const showPalette = ref(false);
+const shellRef = ref<HTMLElement | null>(null);
+const settingsStore = useSettingsStore();
+usePaneZoom(shellRef, () => editorStore.viewMode,
+  () => showSettings.value || showPalette.value, () => !!editorStore.currentDocument);
 
 function toggleSettings(): void {
   showSettings.value = !showSettings.value;
@@ -55,7 +63,7 @@ const showSidebar = computed(() => !hasDoc.value || editorStore.isMarkdownDocume
 </script>
 
 <template>
-  <div class="app-shell">
+  <div ref="shellRef" class="app-shell">
     <EditorToolbar :settings-open="showSettings" @toggle-settings="toggleSettings" />
     <TabBar />
 
@@ -66,9 +74,11 @@ const showSidebar = computed(() => !hasDoc.value || editorStore.isMarkdownDocume
         <template v-if="hasDoc">
           <div
             class="pane editor-pane"
+            data-document-pane="editor"
             :class="{ 'pane-full': editorStore.viewMode === 'edit', 'pane-half': editorStore.viewMode === 'split' }"
             v-show="showEditor"
           >
+            <PaneZoomControls label="Editor" :size="settingsStore.fontSize" />
             <MarkdownEditor />
           </div>
 
@@ -76,11 +86,14 @@ const showSidebar = computed(() => !hasDoc.value || editorStore.isMarkdownDocume
 
           <div
             class="pane preview-pane"
+            data-document-pane="preview"
             :class="{ 'pane-full': editorStore.viewMode === 'preview', 'pane-half': editorStore.viewMode === 'split' }"
             v-show="showPreview"
           >
+            <PaneZoomControls label="Preview" :size="settingsStore.previewFontSize" />
             <JsonTreeView v-if="isJsonDocument" />
-            <MarkdownPreview v-else />
+            <MarkdownPreview v-else-if="editorStore.isMarkdownDocument" />
+            <CodePreview v-else />
           </div>
         </template>
 
@@ -133,6 +146,8 @@ const showSidebar = computed(() => !hasDoc.value || editorStore.isMarkdownDocume
   overflow: hidden;
 }
 .pane {
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
