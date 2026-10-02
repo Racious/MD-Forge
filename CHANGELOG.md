@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.12
 
 - 編輯／預覽獨立字級與重設：分開記住 14px／15px 預設、10–24px 上下限；重設按鈕集中在設定頁；Ctrl 滾輪依所在區域，鍵盤縮放依最近焦點／點擊或可見單欄，排除設定、命令面板與輸入控制元件
 - 預覽縮放保留 Markdown 標題、inline code、code block 與 JSON 巢狀字級比例；不改文件內容、dirty／undo 或 Markdown 匯出
